@@ -116,8 +116,8 @@ function ContenidoPresupuestos() {
           )
         }
       }
-      const extras = [prod.marca, prod.codigo].filter(Boolean).join(' · ')
-      const descripcion = extras ? `${prod.nombre} (${extras})` : prod.nombre
+      const detalle = prod.marca ? `${prod.marca} ${prod.nombre}` : prod.nombre
+      const descripcion = prod.codigo ? `${detalle} (${prod.codigo})` : detalle
       return {
         ...f,
         items: [...f.items, { descripcion, cantidad: 1, precio: String(prod.precio_venta ?? '') }]
@@ -332,8 +332,10 @@ function ContenidoPresupuestos() {
                         className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition hover:bg-orange-50"
                       >
                         <span className="min-w-0 truncate">
+                          {p.marca && (
+                            <span className="text-xs font-semibold text-orange-700">{p.marca} </span>
+                          )}
                           <span className="font-medium text-slate-800">{p.nombre}</span>
-                          {p.marca && <span className="ml-1 text-xs text-slate-500">{p.marca}</span>}
                         </span>
                         <span className="shrink-0 tabular-nums font-semibold text-slate-700">
                           {fmtPrecio.format(p.precio_venta || 0)}

@@ -494,9 +494,9 @@ function ContenidoProductos() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Marca</th>
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">Código</th>
-                <th className="px-4 py-3">Marca</th>
                 <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3 text-right">Stock</th>
                 <th className="hidden px-4 py-3 text-right xl:table-cell">P. Compra</th>
@@ -543,12 +543,6 @@ function ContenidoProductos() {
                   return (
                     <tr key={p.id} className="transition hover:bg-slate-50">
                       <td className="px-4 py-3 text-slate-400">{p.id}</td>
-                      <td className="px-4 py-3 font-medium text-slate-800">{p.nombre}</td>
-                      <td className="px-4 py-3">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
-                          {p.codigo}
-                        </span>
-                      </td>
                       <td className="px-4 py-3">
                         {p.marca ? (
                           <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
@@ -557,6 +551,12 @@ function ContenidoProductos() {
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{p.nombre}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
+                          {p.codigo}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         {p.tipo ? (

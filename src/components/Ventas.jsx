@@ -276,6 +276,7 @@ function ContenidoVentas() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-800">
+                          {p.marca && <span className="text-orange-700">{p.marca} </span>}
                           {p.nombre}
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -333,6 +334,7 @@ function ContenidoVentas() {
                     <li key={i.id} className="flex items-center gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-800">
+                          {i.marca && <span className="text-orange-700">{i.marca} </span>}
                           {i.nombre}
                         </p>
                         <p className="text-xs text-slate-500">
