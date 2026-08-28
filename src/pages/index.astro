@@ -1,8 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import { PaginaProtegida } from '../components/Auth'
 ---
 
 <Layout title="Sistema de Stock">
+  <PaginaProtegida client:load>
   <div class="min-h-screen bg-slate-100">
     <div class="mx-auto flex max-w-3xl flex-col items-center px-4 py-20 text-center">
       <img
@@ -47,4 +49,5 @@ import Layout from '../layouts/Layout.astro'
       </div>
     </div>
   </div>
+  </PaginaProtegida>
 </Layout>
