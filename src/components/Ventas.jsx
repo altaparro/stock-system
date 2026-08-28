@@ -1,14 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import Nav from './Nav'
 import { fmtPrecio, fmtFecha } from '../lib/format'
-
-function IconoCarrito() {
-  return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13 5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-8 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
-    </svg>
-  )
-}
+import { PaginaProtegida } from './Auth'
 
 function IconoBuscar() {
   return (
@@ -19,11 +12,20 @@ function IconoBuscar() {
 }
 
 export default function Ventas() {
+  return (
+    <PaginaProtegida>
+      <ContenidoVentas />
+    </PaginaProtegida>
+  )
+}
+
+function ContenidoVentas() {
   const [productos, setProductos] = useState([])
   const [medios, setMedios] = useState([])
   const [ventas, setVentas] = useState([])
   const [carrito, setCarrito] = useState([])
   const [busqueda, setBusqueda] = useState('')
+  const [tipoFiltro, setTipoFiltro] = useState('')
   const [medioPagoId, setMedioPagoId] = useState('')
   const [loading, setLoading] = useState(true)
   const [procesando, setProcesando] = useState(false)
@@ -130,17 +132,30 @@ export default function Ventas() {
     }
   }
 
+  const tiposDisponibles = useMemo(() => {
+    const map = new Map()
+    productos.forEach((p) => {
+      if (p.tipo) map.set(p.tipo.id, p.tipo.nombre)
+    })
+    return [...map.entries()]
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }, [productos])
+
   const productosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
-    if (!q) return productos
 
     return productos.filter((p) => {
+      if (tipoFiltro && String(p.tipo?.id) !== String(tipoFiltro)) return false
+
+      if (!q) return true
+
       const nombre = p.nombre?.toLowerCase() ?? ''
       const codigo = p.codigo?.toLowerCase() ?? ''
       const tipo = p.tipo?.nombre?.toLowerCase() ?? ''
       return nombre.includes(q) || codigo.includes(q) || tipo.includes(q)
     })
-  }, [productos, busqueda])
+  }, [productos, busqueda, tipoFiltro])
 
   const subtotal = useMemo(
     () =>
@@ -166,9 +181,11 @@ export default function Ventas() {
         <header className="mb-8">
           <Nav activo="ventas" />
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
-              <IconoCarrito />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-12 w-12 rounded-xl object-contain shadow-sm ring-1 ring-orange-200"
+            />
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 Nueva venta
@@ -206,17 +223,32 @@ export default function Ventas() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Productos */}
           <section className="lg:col-span-2">
-            <div className="relative mb-4">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                <IconoBuscar />
-              </span>
-              <input
-                type="search"
-                placeholder="Buscar por nombre, código o tipo..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              />
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                  <IconoBuscar />
+                </span>
+                <input
+                  type="search"
+                  placeholder="Buscar por nombre, código o tipo..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                />
+              </div>
+
+              <select
+                value={tipoFiltro}
+                onChange={(e) => setTipoFiltro(e.target.value)}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 shadow-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+              >
+                <option value="">Todos los tipos</option>
+                {tiposDisponibles.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="max-h-[560px] space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -238,7 +270,7 @@ export default function Ventas() {
                       key={p.id}
                       className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition ${
                         enCarrito
-                          ? 'border-indigo-300 bg-indigo-50/60'
+                          ? 'border-orange-300 bg-orange-50/60'
                           : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
                       }`}
                     >
@@ -251,7 +283,7 @@ export default function Ventas() {
                             {p.codigo}
                           </span>
                           {p.tipo && (
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                            <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-700 ring-1 ring-inset ring-orange-200">
                               {p.tipo.nombre}
                             </span>
                           )}
@@ -273,7 +305,7 @@ export default function Ventas() {
                         type="button"
                         onClick={() => agregarAlCarrito(p)}
                         disabled={sinStock}
-                        className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="shrink-0 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
                         {sinStock ? 'Sin stock' : '+ Agregar'}
                       </button>
@@ -353,7 +385,7 @@ export default function Ventas() {
                 <select
                   value={medioPagoId}
                   onChange={(e) => setMedioPagoId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                 >
                   {medios.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -437,7 +469,7 @@ export default function Ventas() {
                       <Fragment key={v.id}>
                         <tr
                           onClick={() => setVentaAbierta(abierta ? null : v.id)}
-                          className={`cursor-pointer transition ${abierta ? 'bg-indigo-50/60' : 'hover:bg-slate-50'}`}
+                          className={`cursor-pointer transition ${abierta ? 'bg-orange-50/60' : 'hover:bg-slate-50'}`}
                         >
                           <td className="whitespace-nowrap px-4 py-3 text-slate-600">
                             {fmtFecha(v.created_at)}

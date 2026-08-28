@@ -27,7 +27,7 @@ export async function POST({ request }) {
     )
   }
 
-  const { nombre, codigo, stock, precio_venta, precio_compra, tipo_producto_id } = body
+  const { nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id } = body
 
   const { data, error } = await supabase
     .from('productos')
@@ -35,6 +35,7 @@ export async function POST({ request }) {
       {
         nombre,
         codigo,
+        marca: marca || null,
         stock,
         precio_venta,
         precio_compra: Number(precio_compra || 0),
@@ -78,13 +79,14 @@ export async function PUT({ request }) {
     )
   }
 
-  const { id, nombre, codigo, stock, precio_venta, precio_compra, tipo_producto_id } = body
+  const { id, nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id } = body
 
   const { data, error } = await supabase
     .from('productos')
     .update({
       nombre,
       codigo,
+      marca: marca || null,
       stock,
       precio_venta,
       precio_compra: Number(precio_compra || 0),

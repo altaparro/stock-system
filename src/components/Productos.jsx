@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Nav from './Nav'
 import { fmtPrecio } from '../lib/format'
+import { PaginaProtegida } from './Auth'
 
 function IconoBuscar() {
   return (
@@ -10,21 +11,23 @@ function IconoBuscar() {
   )
 }
 
-function IconoCaja() {
+export default function Productos() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7 12 3 4 7v10l8 4 8-4V7Z M4 7l8 4 8-4 M12 11v10" />
-    </svg>
+    <PaginaProtegida>
+      <ContenidoProductos />
+    </PaginaProtegida>
   )
 }
 
-export default function Productos() {
+function ContenidoProductos() {
   const [productos, setProductos] = useState([])
   const [tipos, setTipos] = useState([])
   const [busqueda, setBusqueda] = useState('')
+  const [marcaFiltro, setMarcaFiltro] = useState('')
 
   const [nombre, setNombre] = useState('')
   const [codigo, setCodigo] = useState('')
+  const [marca, setMarca] = useState('')
   const [stock, setStock] = useState('')
   const [precio, setPrecio] = useState('')
   const [precioCompra, setPrecioCompra] = useState('')
@@ -114,6 +117,7 @@ export default function Productos() {
       const body = {
         nombre,
         codigo,
+        marca: marca || null,
         stock: Number(stock || 0),
         precio_venta: Number(precio || 0),
         precio_compra: Number(precioCompra || 0),
@@ -155,6 +159,7 @@ export default function Productos() {
     setEditandoId(producto.id)
     setNombre(producto.nombre)
     setCodigo(producto.codigo)
+    setMarca(producto.marca || '')
     setStock(producto.stock)
     setPrecio(producto.precio_venta)
     setPrecioCompra(producto.precio_compra || '')
@@ -166,6 +171,7 @@ export default function Productos() {
     setEditandoId(null)
     setNombre('')
     setCodigo('')
+    setMarca('')
     setStock('')
     setPrecio('')
     setPrecioCompra('')
@@ -174,19 +180,31 @@ export default function Productos() {
     setNuevoTipoNombre('')
   }
 
+  const marcas = useMemo(() => {
+    const set = new Set()
+    productos.forEach((p) => {
+      if (p.marca) set.add(p.marca.trim())
+    })
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [productos])
+
   const productosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
-    if (!q) return productos
 
     return productos.filter((p) => {
+      if (marcaFiltro && p.marca?.trim() !== marcaFiltro) return false
+
+      if (!q) return true
+
       const nombre = p.nombre?.toLowerCase() ?? ''
       const codigo = p.codigo?.toLowerCase() ?? ''
       const tipo = p.tipo?.nombre?.toLowerCase() ?? ''
+      const marca = p.marca?.toLowerCase() ?? ''
       return (
-        nombre.includes(q) || codigo.includes(q) || tipo.includes(q)
+        nombre.includes(q) || codigo.includes(q) || tipo.includes(q) || marca.includes(q)
       )
     })
-  }, [productos, busqueda])
+  }, [productos, busqueda, marcaFiltro])
 
   const stats = useMemo(() => {
     return {
@@ -210,7 +228,7 @@ export default function Productos() {
   }, [])
 
   const claseInput =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
+    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200'
   const claseLabel =
     'mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500'
 
@@ -221,9 +239,11 @@ export default function Productos() {
         <header className="mb-8">
           <Nav activo="productos" />
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
-              <IconoCaja />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-12 w-12 rounded-xl object-contain shadow-sm ring-1 ring-orange-200"
+            />
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 Productos
@@ -238,10 +258,10 @@ export default function Productos() {
         {/* Métricas */}
         <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
           {[
-            { label: 'Productos', value: stats.total, color: 'text-indigo-600' },
+            { label: 'Productos', value: stats.total, color: 'text-orange-600' },
             { label: 'Unidades en stock', value: stats.unidades, color: 'text-emerald-600' },
             { label: 'Valor inventario', value: fmtPrecio.format(stats.valor), color: 'text-sky-600' },
-            { label: 'Ganancia estimada', value: fmtPrecio.format(stats.ganancia), color: 'text-violet-600' },
+            { label: 'Ganancia estimada', value: fmtPrecio.format(stats.ganancia), color: 'text-orange-600' },
             { label: 'Stock bajo (≤5)', value: stats.bajoStock, color: 'text-amber-600' }
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -252,27 +272,53 @@ export default function Productos() {
         </section>
 
         {/* Buscador */}
-        <div className="relative mb-6">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-            <IconoBuscar />
-          </span>
-          <input
-            type="search"
-            placeholder="Buscar por nombre, código o tipo de producto..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-          />
-          {busqueda && (
-            <button
-              type="button"
-              onClick={() => setBusqueda('')}
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 transition hover:text-slate-600"
-              aria-label="Limpiar búsqueda"
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+              <IconoBuscar />
+            </span>
+            <input
+              type="search"
+              placeholder="Buscar por nombre, código, tipo o marca..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+            />
+            {busqueda && (
+              <button
+                type="button"
+                onClick={() => setBusqueda('')}
+                className="absolute inset-y-0 right-3 flex items-center text-slate-400 transition hover:text-slate-600"
+                aria-label="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={marcaFiltro}
+              onChange={(e) => setMarcaFiltro(e.target.value)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 shadow-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
             >
-              ✕
-            </button>
-          )}
+              <option value="">Todas las marcas</option>
+              {marcas.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            {marcaFiltro && (
+              <button
+                type="button"
+                onClick={() => setMarcaFiltro('')}
+                className="hidden whitespace-nowrap rounded-xl border border-slate-300 px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 sm:block"
+              >
+                Quitar filtro
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Formulario */}
@@ -309,6 +355,22 @@ export default function Productos() {
                 onChange={(e) => setCodigo(e.target.value)}
                 className={claseInput}
               />
+            </div>
+
+            <div>
+              <label className={claseLabel}>Marca</label>
+              <input
+                list="lista-marcas"
+                placeholder="Elegí o escribí una marca"
+                value={marca}
+                onChange={(e) => setMarca(e.target.value)}
+                className={claseInput}
+              />
+              <datalist id="lista-marcas">
+                {marcas.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
             </div>
 
             <div>
@@ -370,7 +432,7 @@ export default function Productos() {
             <button
               type="submit"
               disabled={guardando}
-              className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:opacity-50"
             >
               {editandoId ? 'Actualizar' : guardando ? 'Guardando...' : 'Agregar'}
             </button>
@@ -389,7 +451,7 @@ export default function Productos() {
               <button
                 type="button"
                 onClick={() => setNuevoTipoVisible(true)}
-                className="ml-auto text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+                className="ml-auto text-sm font-medium text-orange-600 transition hover:text-orange-800"
               >
                 + Crear nuevo tipo
               </button>
@@ -401,7 +463,7 @@ export default function Productos() {
                   onChange={(e) => setNuevoTipoNombre(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && guardarTipo(e)}
                   autoFocus
-                  className="w-48 rounded-lg border border-indigo-300 bg-indigo-50/50 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  className="w-48 rounded-lg border border-orange-300 bg-orange-50/50 px-3 py-1.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                 />
                 <button
                   type="button"
@@ -434,6 +496,7 @@ export default function Productos() {
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">Código</th>
+                <th className="px-4 py-3">Marca</th>
                 <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3 text-right">Stock</th>
                 <th className="hidden px-4 py-3 text-right xl:table-cell">P. Compra</th>
@@ -447,7 +510,7 @@ export default function Productos() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
+                    {Array.from({ length: 10 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 animate-pulse rounded bg-slate-200" />
                       </td>
@@ -456,7 +519,7 @@ export default function Productos() {
                 ))
               ) : productosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center">
+                  <td colSpan={10} className="px-4 py-12 text-center">
                     <p className="font-medium text-slate-600">
                       {productos.length === 0
                         ? 'No hay productos cargados.'
@@ -466,7 +529,7 @@ export default function Productos() {
                       <button
                         type="button"
                         onClick={() => setBusqueda('')}
-                        className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                        className="mt-2 text-sm font-medium text-orange-600 hover:text-orange-800"
                       >
                         Limpiar búsqueda
                       </button>
@@ -487,8 +550,17 @@ export default function Productos() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
+                        {p.marca ? (
+                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
+                            {p.marca}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         {p.tipo ? (
-                          <span className="inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                          <span className="inline-flex rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-200">
                             {p.tipo.nombre}
                           </span>
                         ) : (
@@ -529,7 +601,7 @@ export default function Productos() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => editarProducto(p)}
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
                           >
                             Editar
                           </button>
