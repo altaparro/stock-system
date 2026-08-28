@@ -338,6 +338,22 @@ function ContenidoProductos() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
             <div>
+              <label className={claseLabel}>Marca</label>
+              <input
+                list="lista-marcas"
+                placeholder="Elegí o escribí una marca"
+                value={marca}
+                onChange={(e) => setMarca(e.target.value)}
+                className={claseInput}
+              />
+              <datalist id="lista-marcas">
+                {marcas.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </div>
+
+            <div>
               <label className={claseLabel}>Nombre *</label>
               <input
                 placeholder="Ej: Coca-Cola 500ml"
@@ -355,22 +371,6 @@ function ContenidoProductos() {
                 onChange={(e) => setCodigo(e.target.value)}
                 className={claseInput}
               />
-            </div>
-
-            <div>
-              <label className={claseLabel}>Marca</label>
-              <input
-                list="lista-marcas"
-                placeholder="Elegí o escribí una marca"
-                value={marca}
-                onChange={(e) => setMarca(e.target.value)}
-                className={claseInput}
-              />
-              <datalist id="lista-marcas">
-                {marcas.map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
             </div>
 
             <div>
