@@ -89,15 +89,15 @@ function Login() {
   )
 }
 
-export function PaginaProtegida({ children }) {
+export function PaginaProtegida({ children, redirectTo }) {
   return (
     <AuthProvider>
-      <ContenidoProtegido>{children}</ContenidoProtegido>
+      <ContenidoProtegido redirectTo={redirectTo}>{children}</ContenidoProtegido>
     </AuthProvider>
   )
 }
 
-function ContenidoProtegido({ children }) {
+function ContenidoProtegido({ children, redirectTo }) {
   const { usuario, cargando } = useAuth()
 
   if (cargando) {
@@ -109,6 +109,15 @@ function ContenidoProtegido({ children }) {
   }
 
   if (!usuario) return <Login />
+
+  if (redirectTo) {
+    window.location.replace(redirectTo)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <div className="text-sm font-medium text-slate-500">Cargando...</div>
+      </div>
+    )
+  }
 
   return <>{children}</>
 }
