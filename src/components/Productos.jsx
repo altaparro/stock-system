@@ -516,20 +516,20 @@ function ContenidoProductos() {
 
         {/* Tabla */}
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">Marca</th>
-                <th className="px-4 py-3">Nombre</th>
-                <th className="px-4 py-3">Código</th>
-                <th className="px-4 py-3">Tipo</th>
-                <th className="hidden px-4 py-3 md:table-cell">Proveedor</th>
-                <th className="px-4 py-3 text-right">Stock</th>
-                <th className="hidden px-4 py-3 text-right xl:table-cell">P. Compra</th>
-                <th className="px-4 py-3 text-right">P. Venta</th>
-                <th className="hidden px-4 py-3 text-right lg:table-cell">Ganancia</th>
-                <th className="px-4 py-3 text-center">Acciones</th>
+                <th className="px-3 py-3">ID</th>
+                <th className="px-3 py-3">Marca</th>
+                <th className="px-3 py-3">Nombre</th>
+                <th className="px-3 py-3">Código</th>
+                <th className="px-3 py-3">Tipo</th>
+                <th className="hidden px-3 py-3 xl:table-cell">Proveedor</th>
+                <th className="px-3 py-3 text-right">Stock</th>
+                <th className="hidden px-3 py-3 text-right xl:table-cell">P. Compra</th>
+                <th className="px-3 py-3 text-right">P. Venta</th>
+                <th className="hidden px-3 py-3 text-right lg:table-cell">Ganancia</th>
+                <th className="px-3 py-3 text-center">Acciones</th>
               </tr>
             </thead>
 
@@ -538,7 +538,7 @@ function ContenidoProductos() {
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 11 }).map((_, j) => (
-                      <td key={j} className="px-4 py-3">
+                      <td key={j} className="px-3 py-3">
                         <div className="h-4 animate-pulse rounded bg-slate-200" />
                       </td>
                     ))}
@@ -569,8 +569,8 @@ function ContenidoProductos() {
 
                   return (
                     <tr key={p.id} className="transition hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-400">{p.id}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 text-slate-400">{p.id}</td>
+                      <td className="px-3 py-3">
                         {p.marca ? (
                           <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
                             {p.marca}
@@ -579,13 +579,13 @@ function ContenidoProductos() {
                           <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-800">{p.nombre}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3 font-medium text-slate-800">{p.nombre}</td>
+                      <td className="px-3 py-3">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
                           {p.codigo}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         {p.tipo ? (
                           <span className="inline-flex rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-200">
                             {p.tipo.nombre}
@@ -594,7 +594,7 @@ function ContenidoProductos() {
                           <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="hidden px-4 py-3 md:table-cell">
+                      <td className="hidden px-3 py-3 xl:table-cell">
                         {p.proveedor ? (
                           <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
                             {p.proveedor.nombre}
@@ -603,7 +603,7 @@ function ContenidoProductos() {
                           <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 py-3 text-right">
                         <span
                           className={`inline-flex min-w-8 justify-center rounded-md px-2 py-0.5 font-semibold ${
                             p.stock === 0
@@ -616,13 +616,13 @@ function ContenidoProductos() {
                           {p.stock}
                         </span>
                       </td>
-                      <td className="hidden px-4 py-3 text-right tabular-nums text-slate-600 xl:table-cell">
+                      <td className="hidden px-3 py-3 text-right tabular-nums text-slate-600 xl:table-cell">
                         {fmtPrecio.format(p.precio_compra || 0)}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
+                      <td className="px-3 py-3 text-right tabular-nums font-medium text-slate-800">
                         {fmtPrecio.format(p.precio_venta || 0)}
                       </td>
-                      <td className="hidden px-4 py-3 text-right tabular-nums lg:table-cell">
+                      <td className="hidden px-3 py-3 text-right tabular-nums lg:table-cell">
                         <span
                           className={
                             (p.precio_venta || 0) - (p.precio_compra || 0) >= 0
@@ -633,17 +633,17 @@ function ContenidoProductos() {
                           {fmtPrecio.format((p.precio_venta || 0) - (p.precio_compra || 0))}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => editarProducto(p)}
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                            className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => eliminarProducto(p.id)}
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                            className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                           >
                             Eliminar
                           </button>
