@@ -152,7 +152,8 @@ function ContenidoVentas() {
       return coincideBusqueda(busqueda, [
         p.nombre?.toLowerCase() ?? '',
         p.codigo?.toLowerCase() ?? '',
-        p.tipo?.nombre?.toLowerCase() ?? ''
+        p.tipo?.nombre?.toLowerCase() ?? '',
+        p.marca?.toLowerCase() ?? ''
       ])
     })
   }, [productos, busqueda, tipoFiltro])
@@ -230,7 +231,7 @@ function ContenidoVentas() {
                 </span>
                 <input
                   type="search"
-                  placeholder="Buscar por nombre, código o tipo..."
+                  placeholder="Buscar por nombre, código, tipo o marca..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
