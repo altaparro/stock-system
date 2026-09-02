@@ -16,3 +16,6 @@ truncate table public.productos restart identity cascade;
 
 -- 4. Tipos de producto (los productos ya quedaron vacíos por el truncate de arriba)
 truncate table public.tipo_producto restart identity cascade;
+
+-- 5. Proveedores (los productos ya quedaron vacíos)
+truncate table public.proveedores restart identity cascade;

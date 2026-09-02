@@ -22,6 +22,7 @@ export default function Productos() {
 function ContenidoProductos() {
   const [productos, setProductos] = useState([])
   const [tipos, setTipos] = useState([])
+  const [proveedores, setProveedores] = useState([])
   const [busqueda, setBusqueda] = useState('')
   const [marcaFiltro, setMarcaFiltro] = useState('')
 
@@ -32,6 +33,7 @@ function ContenidoProductos() {
   const [precio, setPrecio] = useState('')
   const [precioCompra, setPrecioCompra] = useState('')
   const [tipoId, setTipoId] = useState('')
+  const [proveedorId, setProveedorId] = useState('')
 
   const [nuevoTipoVisible, setNuevoTipoVisible] = useState(false)
   const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
@@ -47,19 +49,23 @@ function ContenidoProductos() {
       setLoading(true)
       setError('')
 
-      const [resProd, resTipos] = await Promise.all([
+      const [resProd, resTipos, resProveedores] = await Promise.all([
         fetch('/api/productos'),
-        fetch('/api/tipos')
+        fetch('/api/tipos'),
+        fetch('/api/proveedores')
       ])
 
       if (!resProd.ok) throw new Error('Error al obtener productos')
       if (!resTipos.ok) throw new Error('Error al obtener tipos de producto')
+      if (!resProveedores.ok) throw new Error('Error al obtener proveedores')
 
       const dataProd = await resProd.json()
       const dataTipos = await resTipos.json()
+      const dataProveedores = await resProveedores.json()
 
       setProductos(Array.isArray(dataProd) ? dataProd : [])
       setTipos(Array.isArray(dataTipos) ? dataTipos : [])
+      setProveedores(Array.isArray(dataProveedores) ? dataProveedores : [])
     } catch (err) {
       console.error(err)
       setError(err.message)
@@ -121,7 +127,8 @@ function ContenidoProductos() {
         stock: Number(stock || 0),
         precio_venta: Number(precio || 0),
         precio_compra: Number(precioCompra || 0),
-        tipo_producto_id: tipoId || null
+        tipo_producto_id: tipoId || null,
+        proveedor_id: proveedorId || null
       }
 
       const res = await fetch('/api/productos', {
@@ -164,6 +171,7 @@ function ContenidoProductos() {
     setPrecio(producto.precio_venta)
     setPrecioCompra(producto.precio_compra || '')
     setTipoId(producto.tipo_producto_id || '')
+    setProveedorId(producto.proveedor_id || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -176,6 +184,7 @@ function ContenidoProductos() {
     setPrecio('')
     setPrecioCompra('')
     setTipoId('')
+    setProveedorId('')
     setNuevoTipoVisible(false)
     setNuevoTipoNombre('')
   }
@@ -200,8 +209,9 @@ function ContenidoProductos() {
       const codigo = p.codigo?.toLowerCase() ?? ''
       const tipo = p.tipo?.nombre?.toLowerCase() ?? ''
       const marca = p.marca?.toLowerCase() ?? ''
+      const proveedor = p.proveedor?.nombre?.toLowerCase() ?? ''
       return (
-        nombre.includes(q) || codigo.includes(q) || tipo.includes(q) || marca.includes(q)
+        nombre.includes(q) || codigo.includes(q) || tipo.includes(q) || marca.includes(q) || proveedor.includes(q)
       )
     })
   }, [productos, busqueda, marcaFiltro])
@@ -279,7 +289,7 @@ function ContenidoProductos() {
             </span>
             <input
               type="search"
-              placeholder="Buscar por nombre, código, tipo o marca..."
+              placeholder="Buscar por nombre, código, tipo, marca o proveedor..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
@@ -384,6 +394,22 @@ function ContenidoProductos() {
                 {tipos.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={claseLabel}>Proveedor</label>
+              <select
+                value={proveedorId}
+                onChange={(e) => setProveedorId(e.target.value)}
+                className={claseInput}
+              >
+                <option value="">Sin proveedor</option>
+                {proveedores.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
                   </option>
                 ))}
               </select>
@@ -498,6 +524,7 @@ function ContenidoProductos() {
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">Código</th>
                 <th className="px-4 py-3">Tipo</th>
+                <th className="hidden px-4 py-3 md:table-cell">Proveedor</th>
                 <th className="px-4 py-3 text-right">Stock</th>
                 <th className="hidden px-4 py-3 text-right xl:table-cell">P. Compra</th>
                 <th className="px-4 py-3 text-right">P. Venta</th>
@@ -510,7 +537,7 @@ function ContenidoProductos() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 10 }).map((_, j) => (
+                    {Array.from({ length: 11 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 animate-pulse rounded bg-slate-200" />
                       </td>
@@ -519,7 +546,7 @@ function ContenidoProductos() {
                 ))
               ) : productosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center">
+                  <td colSpan={11} className="px-4 py-12 text-center">
                     <p className="font-medium text-slate-600">
                       {productos.length === 0
                         ? 'No hay productos cargados.'
@@ -562,6 +589,15 @@ function ContenidoProductos() {
                         {p.tipo ? (
                           <span className="inline-flex rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-200">
                             {p.tipo.nombre}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="hidden px-4 py-3 md:table-cell">
+                        {p.proveedor ? (
+                          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+                            {p.proveedor.nombre}
                           </span>
                         ) : (
                           <span className="text-xs text-slate-400">—</span>

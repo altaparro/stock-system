@@ -5,7 +5,7 @@ export const prerender = false
 export async function GET() {
   const { data, error } = await supabase
     .from('productos')
-    .select('*, tipo:tipo_producto(id, nombre)')
+    .select('*, tipo:tipo_producto(id, nombre), proveedor:proveedores(id, nombre)')
     .order('id')
 
   if (error) {
@@ -27,7 +27,7 @@ export async function POST({ request }) {
     )
   }
 
-  const { nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id } = body
+  const { nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id, proveedor_id } = body
 
   const { data, error } = await supabase
     .from('productos')
@@ -39,7 +39,8 @@ export async function POST({ request }) {
         stock,
         precio_venta,
         precio_compra: Number(precio_compra || 0),
-        tipo_producto_id: tipo_producto_id || null
+        tipo_producto_id: tipo_producto_id || null,
+        proveedor_id: proveedor_id || null
       }
     ])
     .select()
@@ -79,7 +80,7 @@ export async function PUT({ request }) {
     )
   }
 
-  const { id, nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id } = body
+  const { id, nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id, proveedor_id } = body
 
   const { data, error } = await supabase
     .from('productos')
@@ -90,7 +91,8 @@ export async function PUT({ request }) {
       stock,
       precio_venta,
       precio_compra: Number(precio_compra || 0),
-      tipo_producto_id: tipo_producto_id || null
+      tipo_producto_id: tipo_producto_id || null,
+      proveedor_id: proveedor_id || null
     })
     .eq('id', id)
     .select()

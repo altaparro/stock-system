@@ -4,7 +4,7 @@ import { PaginaProtegida } from './Auth'
 import { fmtPrecio } from '../lib/format'
 
 const DATOS_EMPRESA = {
-  nombre: 'Audio Car & Accesorios',
+  nombre: 'Lexus autoradio',
   direccion: 'Dirección 10 N° 1745, La Plata, Buenos Aires',
   telefono: 'Tel: 221-4535452',
   horarios: 'Lunes a Viernes de 9 a 16 hs · Sábados de 9 a 13 hs'
