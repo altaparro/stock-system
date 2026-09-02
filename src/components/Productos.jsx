@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Nav from './Nav'
 import { fmtPrecio } from '../lib/format'
+import { coincideBusqueda } from '../lib/busqueda'
 import { PaginaProtegida } from './Auth'
 
 function IconoBuscar() {
@@ -198,21 +199,18 @@ function ContenidoProductos() {
   }, [productos])
 
   const productosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-
     return productos.filter((p) => {
       if (marcaFiltro && p.marca?.trim() !== marcaFiltro) return false
 
-      if (!q) return true
+      if (!busqueda.trim()) return true
 
-      const nombre = p.nombre?.toLowerCase() ?? ''
-      const codigo = p.codigo?.toLowerCase() ?? ''
-      const tipo = p.tipo?.nombre?.toLowerCase() ?? ''
-      const marca = p.marca?.toLowerCase() ?? ''
-      const proveedor = p.proveedor?.nombre?.toLowerCase() ?? ''
-      return (
-        nombre.includes(q) || codigo.includes(q) || tipo.includes(q) || marca.includes(q) || proveedor.includes(q)
-      )
+      return coincideBusqueda(busqueda, [
+        p.nombre?.toLowerCase() ?? '',
+        p.codigo?.toLowerCase() ?? '',
+        p.tipo?.nombre?.toLowerCase() ?? '',
+        p.marca?.toLowerCase() ?? '',
+        p.proveedor?.nombre?.toLowerCase() ?? ''
+      ])
     })
   }, [productos, busqueda, marcaFiltro])
 

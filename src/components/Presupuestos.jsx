@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Nav from './Nav'
 import { PaginaProtegida } from './Auth'
 import { fmtPrecio } from '../lib/format'
+import { coincideBusqueda } from '../lib/busqueda'
 
 const DATOS_EMPRESA = {
   nombre: 'Lexus autoradio',
@@ -126,18 +127,16 @@ function ContenidoPresupuestos() {
   }
 
   const productosFiltrados = useMemo(() => {
-    const q = busquedaProd.trim().toLowerCase()
-    if (!q) return []
+    if (!busquedaProd.trim()) return []
     return productos
-      .filter((p) => {
-        const nombre = p.nombre?.toLowerCase() ?? ''
-        const codigo = p.codigo?.toLowerCase() ?? ''
-        const marca = p.marca?.toLowerCase() ?? ''
-        const tipo = p.tipo?.nombre?.toLowerCase() ?? ''
-        return (
-          nombre.includes(q) || codigo.includes(q) || marca.includes(q) || tipo.includes(q)
-        )
-      })
+      .filter((p) =>
+        coincideBusqueda(busquedaProd, [
+          p.nombre?.toLowerCase() ?? '',
+          p.codigo?.toLowerCase() ?? '',
+          p.marca?.toLowerCase() ?? '',
+          p.tipo?.nombre?.toLowerCase() ?? ''
+        ])
+      )
       .slice(0, 8)
   }, [productos, busquedaProd])
 

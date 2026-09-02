@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Nav from './Nav'
 import { PaginaProtegida } from './Auth'
+import { coincideBusqueda } from '../lib/busqueda'
 
 function IconoBuscar() {
   return (
@@ -123,15 +124,15 @@ function ContenidoProveedores() {
   }
 
   const proveedoresFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-    if (!q) return proveedores
+    if (!busqueda.trim()) return proveedores
 
-    return proveedores.filter((p) => {
-      const nombre = p.nombre?.toLowerCase() ?? ''
-      const email = p.email?.toLowerCase() ?? ''
-      const telefono = p.telefono?.toLowerCase() ?? ''
-      return nombre.includes(q) || email.includes(q) || telefono.includes(q)
-    })
+    return proveedores.filter((p) =>
+      coincideBusqueda(busqueda, [
+        p.nombre?.toLowerCase() ?? '',
+        p.email?.toLowerCase() ?? '',
+        p.telefono?.toLowerCase() ?? ''
+      ])
+    )
   }, [proveedores, busqueda])
 
   useEffect(() => {
