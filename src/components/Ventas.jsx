@@ -23,6 +23,7 @@ export default function Ventas() {
 function ContenidoVentas() {
   const [productos, setProductos] = useState([])
   const [medios, setMedios] = useState([])
+  const [clientes, setClientes] = useState([])
   const [ventas, setVentas] = useState([])
   const [carrito, setCarrito] = useState([])
   const [busqueda, setBusqueda] = useState('')
@@ -35,6 +36,7 @@ function ContenidoVentas() {
   const [ventaAbierta, setVentaAbierta] = useState(null)
   const [manoObraDesc, setManoObraDesc] = useState('')
   const [manoObraMonto, setManoObraMonto] = useState('')
+  const [clienteId, setClienteId] = useState('')
 
   async function obtenerDatos() {
     try {
@@ -55,8 +57,17 @@ function ContenidoVentas() {
       const dataMedios = await resMedios.json()
       const dataVentas = await resVentas.json()
 
+      let dataClientes = []
+      try {
+        const resClientes = await fetch('/api/clientes')
+        if (resClientes.ok) dataClientes = await resClientes.json()
+      } catch {
+        // clientes es opcional
+      }
+
       setProductos(Array.isArray(dataProd) ? dataProd : [])
       setMedios(Array.isArray(dataMedios) ? dataMedios : [])
+      setClientes(Array.isArray(dataClientes) ? dataClientes : [])
       setVentas(Array.isArray(dataVentas) ? dataVentas : [])
 
       setMedioPagoId((prev) => {
@@ -116,6 +127,7 @@ function ContenidoVentas() {
           medio_pago_id: Number(medioPagoId),
           mano_obra_descripcion: manoObraDesc.trim() || null,
           mano_obra_monto: Number(manoObraMonto) || 0,
+          cliente_id: clienteId ? Number(clienteId) : null,
           items: carrito.map((i) => ({ producto_id: i.id, cantidad: i.cantidad }))
         })
       })
@@ -130,6 +142,7 @@ function ContenidoVentas() {
       setCarrito([])
       setManoObraDesc('')
       setManoObraMonto('')
+      setClienteId('')
       await obtenerDatos()
     } catch (err) {
       console.error(err)
@@ -416,6 +429,25 @@ function ContenidoVentas() {
 
               <div className="mb-4">
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Cliente (opcional)
+                </label>
+                <select
+                  value={clienteId}
+                  onChange={(e) => setClienteId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                >
+                  <option value="">Sin cliente</option>
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                      {c.telefono ? ` — ${c.telefono}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Medio de pago
                 </label>
                 <select
@@ -478,6 +510,7 @@ function ContenidoVentas() {
                   <th className="px-4 py-3">Fecha</th>
                   <th className="px-4 py-3">Venta</th>
                   <th className="px-4 py-3">Medio de pago</th>
+                  <th className="hidden px-4 py-3 md:table-cell">Cliente</th>
                   <th className="hidden px-4 py-3 text-right sm:table-cell">Subtotal</th>
                   <th className="hidden px-4 py-3 text-right sm:table-cell">Interés</th>
                   <th className="px-4 py-3 text-right">Total</th>
@@ -488,7 +521,7 @@ function ContenidoVentas() {
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <tr key={i}>
-                      {Array.from({ length: 6 }).map((_, j) => (
+                      {Array.from({ length: 7 }).map((_, j) => (
                         <td key={j} className="px-4 py-3">
                           <div className="h-4 animate-pulse rounded bg-slate-200" />
                         </td>
@@ -497,7 +530,7 @@ function ContenidoVentas() {
                   ))
                 ) : ventas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center font-medium text-slate-500">
+                    <td colSpan={7} className="px-4 py-12 text-center font-medium text-slate-500">
                       Todavía no hay ventas registradas.
                     </td>
                   </tr>
@@ -526,6 +559,9 @@ function ContenidoVentas() {
                               {Number(v.interes_pct) > 0 ? ` +${v.interes_pct}%` : ''}
                             </span>
                           </td>
+                          <td className="hidden px-4 py-3 text-slate-600 md:table-cell">
+                            {v.cliente?.nombre || '—'}
+                          </td>
                           <td className="hidden px-4 py-3 text-right tabular-nums text-slate-600 sm:table-cell">
                             {fmtPrecio.format(v.total_base || 0)}
                           </td>
@@ -539,7 +575,12 @@ function ContenidoVentas() {
 
                         {abierta && (
                           <tr className="bg-slate-50/70">
-                            <td colSpan={6} className="px-4 py-3">
+                            <td colSpan={7} className="px-4 py-3">
+                              {v.cliente?.nombre && (
+                                <p className="mb-2 text-sm font-semibold text-slate-800">
+                                  Cliente: <span className="font-medium text-orange-700">{v.cliente.nombre}</span>
+                                </p>
+                              )}
                               <ul className="space-y-1 text-sm text-slate-600">
                                 {(v.detalle ?? []).map((d) => (
                                   <li key={d.id} className="flex justify-between gap-4">

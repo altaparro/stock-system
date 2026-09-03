@@ -6,7 +6,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('ventas')
     .select(
-      '*, medio:medio_pago(nombre), detalle:venta_detalle(id, nombre_producto, codigo_producto, cantidad, precio_unitario, costo_unitario, subtotal)'
+      '*, medio:medio_pago(nombre), cliente:clientes(nombre), detalle:venta_detalle(id, nombre_producto, codigo_producto, cantidad, precio_unitario, costo_unitario, subtotal)'
     )
     .order('created_at', { ascending: false })
     .limit(200)
@@ -34,6 +34,7 @@ export async function POST({ request }) {
   const items = Array.isArray(body?.items) ? body.items : []
   const manoObraDesc = body?.mano_obra_descripcion || null
   const manoObraMonto = Number(body?.mano_obra_monto) || 0
+  const clienteId = body?.cliente_id ? Number(body.cliente_id) : null
 
   const itemsValidos = items.every(
     (i) =>
@@ -59,7 +60,8 @@ export async function POST({ request }) {
       cantidad: Number(i.cantidad)
     })),
     p_mano_obra_descripcion: manoObraDesc,
-    p_mano_obra_monto: manoObraMonto
+    p_mano_obra_monto: manoObraMonto,
+    p_cliente_id: clienteId
   })
 
   if (error) {
