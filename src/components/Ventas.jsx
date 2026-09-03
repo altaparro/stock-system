@@ -33,6 +33,8 @@ function ContenidoVentas() {
   const [error, setError] = useState('')
   const [ventaExitosa, setVentaExitosa] = useState(null)
   const [ventaAbierta, setVentaAbierta] = useState(null)
+  const [manoObraDesc, setManoObraDesc] = useState('')
+  const [manoObraMonto, setManoObraMonto] = useState('')
 
   async function obtenerDatos() {
     try {
@@ -105,13 +107,15 @@ function ContenidoVentas() {
       setError('')
       setVentaExitosa(null)
 
-      if (carrito.length === 0) return
+      if (carrito.length === 0 && !manoObraMonto) return
 
       const res = await fetch('/api/ventas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medio_pago_id: Number(medioPagoId),
+          mano_obra_descripcion: manoObraDesc.trim() || null,
+          mano_obra_monto: Number(manoObraMonto) || 0,
           items: carrito.map((i) => ({ producto_id: i.id, cantidad: i.cantidad }))
         })
       })
@@ -124,6 +128,8 @@ function ContenidoVentas() {
 
       setVentaExitosa(data)
       setCarrito([])
+      setManoObraDesc('')
+      setManoObraMonto('')
       await obtenerDatos()
     } catch (err) {
       console.error(err)
@@ -163,8 +169,8 @@ function ContenidoVentas() {
       carrito.reduce(
         (acc, i) => acc + (i.precio_venta || 0) * i.cantidad,
         0
-      ),
-    [carrito]
+      ) + (Number(manoObraMonto) || 0),
+    [carrito, manoObraMonto]
   )
 
   const medioSeleccionado = medios.find((m) => String(m.id) === String(medioPagoId))
@@ -381,6 +387,33 @@ function ContenidoVentas() {
                 </ul>
               )}
 
+              <div className="mb-4 border-t border-slate-200 pt-4">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Mano de obra
+                </label>
+                <input
+                  type="text"
+                  placeholder="Descripción del trabajo realizado..."
+                  value={manoObraDesc}
+                  onChange={(e) => setManoObraDesc(e.target.value)}
+                  className="mb-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                />
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-400">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Monto"
+                    value={manoObraMonto}
+                    onChange={(e) => setManoObraMonto(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  />
+                </div>
+              </div>
+
               <div className="mb-4">
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Medio de pago
@@ -419,7 +452,11 @@ function ContenidoVentas() {
               <button
                 type="button"
                 onClick={finalizarVenta}
-                disabled={carrito.length === 0 || procesando || !medioPagoId}
+                disabled={
+                  (carrito.length === 0 && !manoObraMonto) ||
+                  procesando ||
+                  !medioPagoId
+                }
                 className="mt-5 w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 {procesando ? 'Procesando...' : 'Finalizar venta'}
@@ -522,6 +559,19 @@ function ContenidoVentas() {
                                     </span>
                                   </li>
                                 ))}
+                                {v.mano_obra_descripcion && (
+                                  <li className="flex justify-between gap-4">
+                                    <span>
+                                      <strong className="text-slate-800">
+                                        Mano de obra:
+                                      </strong>{' '}
+                                      {v.mano_obra_descripcion}
+                                    </span>
+                                    <span className="tabular-nums">
+                                      {fmtPrecio.format(v.mano_obra_monto || 0)}
+                                    </span>
+                                  </li>
+                                )}
                               </ul>
                             </td>
                           </tr>

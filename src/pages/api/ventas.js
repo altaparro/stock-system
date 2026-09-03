@@ -32,6 +32,8 @@ export async function POST({ request }) {
 
   const medioPagoId = Number(body?.medio_pago_id)
   const items = Array.isArray(body?.items) ? body.items : []
+  const manoObraDesc = body?.mano_obra_descripcion || null
+  const manoObraMonto = Number(body?.mano_obra_monto) || 0
 
   const itemsValidos = items.every(
     (i) =>
@@ -40,7 +42,10 @@ export async function POST({ request }) {
       Number(i.cantidad) > 0
   )
 
-  if (!Number.isInteger(medioPagoId) || items.length === 0 || !itemsValidos) {
+  if (
+    !Number.isInteger(medioPagoId) ||
+    (!itemsValidos && manoObraMonto <= 0)
+  ) {
     return new Response(
       JSON.stringify({ error: 'Datos de la venta incompletos o inválidos' }),
       { status: 400 }
@@ -52,7 +57,9 @@ export async function POST({ request }) {
     p_items: items.map((i) => ({
       producto_id: Number(i.producto_id),
       cantidad: Number(i.cantidad)
-    }))
+    })),
+    p_mano_obra_descripcion: manoObraDesc,
+    p_mano_obra_monto: manoObraMonto
   })
 
   if (error) {
