@@ -37,6 +37,11 @@ function ContenidoVentas() {
   const [manoObraDesc, setManoObraDesc] = useState('')
   const [manoObraMonto, setManoObraMonto] = useState('')
   const [clienteId, setClienteId] = useState('')
+  const [modalClienteAbierto, setModalClienteAbierto] = useState(false)
+  const [nuevoClienteNombre, setNuevoClienteNombre] = useState('')
+  const [nuevoClienteTelefono, setNuevoClienteTelefono] = useState('')
+  const [nuevoClienteEmail, setNuevoClienteEmail] = useState('')
+  const [guardandoCliente, setGuardandoCliente] = useState(false)
 
   async function obtenerDatos() {
     try {
@@ -110,6 +115,53 @@ function ContenidoVentas() {
 
   function quitarDelCarrito(id) {
     setCarrito((prev) => prev.filter((i) => i.id !== id))
+  }
+
+  async function guardarClienteDesdeModal(e) {
+    e.preventDefault()
+
+    try {
+      setGuardandoCliente(true)
+      setError('')
+
+      if (!nuevoClienteNombre.trim()) {
+        setError('El nombre del cliente es obligatorio')
+        return
+      }
+
+      const res = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nuevoClienteNombre.trim(),
+          telefono: nuevoClienteTelefono.trim() || null,
+          email: nuevoClienteEmail.trim() || null
+        })
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Error al guardar el cliente')
+      }
+
+      const data = await res.json()
+      await obtenerDatos()
+      setClienteId(String(data[0].id))
+      setModalClienteAbierto(false)
+      setNuevoClienteNombre('')
+      setNuevoClienteTelefono('')
+      setNuevoClienteEmail('')
+    } catch (err) {
+      console.error(err)
+      setError(err.message)
+    } finally {
+      setGuardandoCliente(false)
+    }
+  }
+
+  function cerrarModalCliente() {
+    setModalClienteAbierto(false)
+    setError('')
   }
 
   async function finalizarVenta() {
@@ -428,9 +480,18 @@ function ContenidoVentas() {
               </div>
 
               <div className="mb-4">
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Cliente (opcional)
-                </label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Cliente (opcional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setModalClienteAbierto(true)}
+                    className="text-xs font-semibold text-orange-600 transition hover:text-orange-800"
+                  >
+                    + Nuevo cliente
+                  </button>
+                </div>
                 <select
                   value={clienteId}
                   onChange={(e) => setClienteId(e.target.value)}
@@ -626,6 +687,88 @@ function ContenidoVentas() {
           </div>
         </section>
       </div>
+
+      {modalClienteAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Nuevo cliente</h3>
+              <button
+                type="button"
+                onClick={cerrarModalCliente}
+                className="text-slate-400 transition hover:text-slate-600"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={guardarClienteDesdeModal} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Juan Pérez"
+                  value={nuevoClienteNombre}
+                  onChange={(e) => setNuevoClienteNombre(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Teléfono
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: 11-1234-5678"
+                  value={nuevoClienteTelefono}
+                  onChange={(e) => setNuevoClienteTelefono(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="Ej: juan@correo.com"
+                  value={nuevoClienteEmail}
+                  onChange={(e) => setNuevoClienteEmail(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={cerrarModalCliente}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoCliente}
+                  className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:opacity-50"
+                >
+                  {guardandoCliente ? 'Guardando...' : 'Guardar cliente'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
