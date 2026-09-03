@@ -34,6 +34,7 @@ function ContenidoVentas() {
   const [error, setError] = useState('')
   const [ventaExitosa, setVentaExitosa] = useState(null)
   const [ventaAbierta, setVentaAbierta] = useState(null)
+  const [busquedaVentas, setBusquedaVentas] = useState('')
   const [manoObraDesc, setManoObraDesc] = useState('')
   const [manoObraMonto, setManoObraMonto] = useState('')
   const [clienteId, setClienteId] = useState('')
@@ -242,6 +243,19 @@ function ContenidoVentas() {
   const interesPct = Number(medioSeleccionado?.interes || 0)
   const montoInteres = (subtotal * interesPct) / 100
   const total = subtotal + montoInteres
+
+  const ventasFiltradas = useMemo(() => {
+    if (!busquedaVentas.trim()) return ventas
+
+    return ventas.filter((v) =>
+      coincideBusqueda(busquedaVentas, [
+        v.cliente?.nombre?.toLowerCase() ?? '',
+        v.medio?.nombre?.toLowerCase() ?? '',
+        fmtFecha(v.created_at).toLowerCase(),
+        String(v.id)
+      ])
+    )
+  }, [ventas, busquedaVentas])
 
   useEffect(() => {
     obtenerDatos()
@@ -560,9 +574,23 @@ function ContenidoVentas() {
 
         {/* Historial */}
         <section className="mt-10">
-          <h2 className="mb-4 text-lg font-bold tracking-tight text-slate-900">
-            Ventas realizadas
-          </h2>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="text-lg font-bold tracking-tight text-slate-900">
+              Ventas realizadas
+            </h2>
+            <div className="relative sm:w-72">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                <IconoBuscar />
+              </span>
+              <input
+                type="search"
+                placeholder="Buscar por cliente, medio de pago o fecha..."
+                value={busquedaVentas}
+                onChange={(e) => setBusquedaVentas(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+              />
+            </div>
+          </div>
 
           <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full text-left text-sm">
@@ -595,8 +623,23 @@ function ContenidoVentas() {
                       Todavía no hay ventas registradas.
                     </td>
                   </tr>
+                ) : ventasFiltradas.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center">
+                      <p className="font-medium text-slate-600">
+                        No se encontraron ventas con esa búsqueda.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setBusquedaVentas('')}
+                        className="mt-2 text-sm font-medium text-orange-600 hover:text-orange-800"
+                      >
+                        Limpiar búsqueda
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  ventas.map((v) => {
+                  ventasFiltradas.map((v) => {
                     const abierta = ventaAbierta === v.id
 
                     return (
