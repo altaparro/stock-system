@@ -42,7 +42,10 @@ function ContenidoVentas() {
   const [nuevoClienteNombre, setNuevoClienteNombre] = useState('')
   const [nuevoClienteTelefono, setNuevoClienteTelefono] = useState('')
   const [nuevoClienteEmail, setNuevoClienteEmail] = useState('')
+  const [nuevoClienteDocTipo, setNuevoClienteDocTipo] = useState('DNI')
+  const [nuevoClienteDocNumero, setNuevoClienteDocNumero] = useState('')
   const [guardandoCliente, setGuardandoCliente] = useState(false)
+  const [facturandoId, setFacturandoId] = useState(null)
   const [ventaEditando, setVentaEditando] = useState(null)
   const [editCarrito, setEditCarrito] = useState([])
   const [editManoObraDesc, setEditManoObraDesc] = useState('')
@@ -147,7 +150,9 @@ function ContenidoVentas() {
         body: JSON.stringify({
           nombre: nuevoClienteNombre.trim(),
           telefono: nuevoClienteTelefono.trim() || null,
-          email: nuevoClienteEmail.trim() || null
+          email: nuevoClienteEmail.trim() || null,
+          documento_tipo: nuevoClienteDocTipo || null,
+          documento_numero: nuevoClienteDocNumero.trim() || null
         })
       })
 
@@ -163,6 +168,8 @@ function ContenidoVentas() {
       setNuevoClienteNombre('')
       setNuevoClienteTelefono('')
       setNuevoClienteEmail('')
+      setNuevoClienteDocTipo('DNI')
+      setNuevoClienteDocNumero('')
     } catch (err) {
       console.error(err)
       setError(err.message)
@@ -176,7 +183,50 @@ function ContenidoVentas() {
     setError('')
   }
 
-  async function finalizarVenta() {
+  function fmtComprobante(ptoVta, numero) {
+    const pv = String(ptoVta || 0).padStart(4, '0')
+    const n = String(numero || 0).padStart(8, '0')
+    return `${pv}-${n}`
+  }
+
+  function fmtCaeVto(ymd) {
+    const s = String(ymd || '')
+    if (s.length !== 8) return s
+    return `${s.slice(6)}/${s.slice(4, 6)}/${s.slice(0, 4)}`
+  }
+
+  async function facturarVentaPorId(ventaId) {
+    setFacturandoId(ventaId)
+    try {
+      const res = await fetch('/api/facturas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venta_id: ventaId })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al facturar con ARCA')
+      }
+      return data
+    } finally {
+      setFacturandoId(null)
+    }
+  }
+
+  async function facturarDesdeHistorial(v) {
+    try {
+      setError('')
+      setVentaExitosa(null)
+      const factura = await facturarVentaPorId(v.id)
+      setVentaExitosa({ venta_id: v.id, facturada: true, total: v.total, factura })
+      await obtenerDatos()
+    } catch (err) {
+      console.error(err)
+      setError(err.message)
+    }
+  }
+
+  async function finalizarVenta(facturar = false) {
     try {
       setProcesando(true)
       setError('')
@@ -202,11 +252,25 @@ function ContenidoVentas() {
         throw new Error(data.error || 'Error al registrar la venta')
       }
 
-      setVentaExitosa(data)
       setCarrito([])
       setManoObraDesc('')
       setManoObraMonto('')
       setClienteId('')
+
+      if (facturar) {
+        try {
+          const factura = await facturarVentaPorId(data.venta_id)
+          setVentaExitosa({ ...data, facturada: true, factura })
+        } catch (err) {
+          console.error(err)
+          setError(
+            `La venta #${data.venta_id} se registró, pero hubo un problema al facturar: ${err.message}. Podés reintentar desde el historial.`
+          )
+        }
+      } else {
+        setVentaExitosa(data)
+      }
+
       await obtenerDatos()
     } catch (err) {
       console.error(err)
@@ -473,15 +537,31 @@ function ContenidoVentas() {
         )}
 
         {ventaExitosa && (
-          <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             <span>
-              Venta <strong>#{ventaExitosa.venta_id}</strong> registrada por{' '}
-              <strong>{fmtPrecio.format(ventaExitosa.total)}</strong>. Stock actualizado.
+              {ventaExitosa.facturada && ventaExitosa.factura ? (
+                <>
+                  Venta <strong>#{ventaExitosa.venta_id}</strong> registrada y{' '}
+                  <strong>facturada</strong> por{' '}
+                  <strong>{fmtPrecio.format(ventaExitosa.factura.total || ventaExitosa.total)}</strong>.
+                  {' '}Factura C{' '}
+                  <strong className="font-mono">
+                    {fmtComprobante(ventaExitosa.factura.ptoVta, ventaExitosa.factura.cbteNro)}
+                  </strong>{' '}
+                  · CAE <strong className="font-mono">{ventaExitosa.factura.cae}</strong> · Vence{' '}
+                  {fmtCaeVto(ventaExitosa.factura.caeVencimiento)}.
+                </>
+              ) : (
+                <>
+                  Venta <strong>#{ventaExitosa.venta_id}</strong> registrada por{' '}
+                  <strong>{fmtPrecio.format(ventaExitosa.total)}</strong>. Stock actualizado.
+                </>
+              )}
             </span>
             <button
               type="button"
               onClick={() => setVentaExitosa(null)}
-              className="text-emerald-600 hover:text-emerald-800"
+              className="shrink-0 text-emerald-600 hover:text-emerald-800"
               aria-label="Cerrar"
             >
               ✕
@@ -741,7 +821,7 @@ function ContenidoVentas() {
 
               <button
                 type="button"
-                onClick={finalizarVenta}
+                onClick={() => finalizarVenta(false)}
                 disabled={
                   (carrito.length === 0 && !manoObraMonto) ||
                   procesando ||
@@ -750,6 +830,19 @@ function ContenidoVentas() {
                 className="mt-5 w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
                 {procesando ? 'Procesando...' : 'Finalizar venta'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => finalizarVenta(true)}
+                disabled={
+                  (carrito.length === 0 && !manoObraMonto) ||
+                  procesando ||
+                  !medioPagoId
+                }
+                className="mt-2 w-full rounded-xl bg-sky-600 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/25 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+              >
+                {procesando ? 'Procesando...' : 'Registrar y facturar'}
               </button>
             </div>
           </section>
@@ -836,6 +929,11 @@ function ContenidoVentas() {
                           </td>
                           <td className="px-4 py-3 font-medium text-slate-800">
                             #{v.id}
+                            {v.facturada && (
+                              <span className="ml-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                F
+                              </span>
+                            )}
                             <span className="ml-2 text-xs text-slate-400">
                               {v.detalle?.length ?? 0} ítems {abierta ? '▲' : '▼'}
                             </span>
@@ -927,6 +1025,52 @@ function ContenidoVentas() {
                                   Eliminar
                                 </button>
                               </div>
+
+                              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                                {v.facturada ? (
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                      ✓ Facturada
+                                    </span>
+                                    <span className="font-mono text-slate-800">
+                                      Factura C {fmtComprobante(v.comprobante_punto_venta, v.comprobante_numero)}
+                                    </span>
+                                    <span className="text-slate-600">
+                                      CAE: <span className="font-mono">{v.cae}</span>
+                                    </span>
+                                    <span className="text-slate-600">
+                                      Vence: {fmtCaeVto(v.cae_fecha_vto)}
+                                    </span>
+                                    {v.factura_qr_url && (
+                                      <a
+                                        href={v.factura_qr_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
+                                      >
+                                        Ver QR
+                                      </a>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="text-xs font-medium text-slate-400">
+                                      Esta venta no está facturada.
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => facturarDesdeHistorial(v)}
+                                      disabled={facturandoId === v.id}
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-sky-700 disabled:opacity-50"
+                                    >
+                                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.6a2 2 0 0 1 1.4.6l3.4 3.4a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2Z" />
+                                      </svg>
+                                      {facturandoId === v.id ? 'Facturando...' : 'Facturar con ARCA'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         )}
@@ -999,6 +1143,38 @@ function ContenidoVentas() {
                   onChange={(e) => setNuevoClienteEmail(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Tipo de documento
+                  </label>
+                  <select
+                    value={nuevoClienteDocTipo}
+                    onChange={(e) => setNuevoClienteDocTipo(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  >
+                    <option value="DNI">DNI</option>
+                    <option value="CUIT">CUIT</option>
+                    <option value="CUIL">CUIL</option>
+                    <option value="PASAPORTE">Pasaporte</option>
+                    <option value="CI">CI / Ext</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    N° de documento
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Para facturar"
+                    value={nuevoClienteDocNumero}
+                    onChange={(e) => setNuevoClienteDocNumero(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

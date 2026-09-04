@@ -26,6 +26,8 @@ function ContenidoClientes() {
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
   const [email, setEmail] = useState('')
+  const [documentoTipo, setDocumentoTipo] = useState('DNI')
+  const [documentoNumero, setDocumentoNumero] = useState('')
 
   const [editandoId, setEditandoId] = useState(null)
   const [clienteAbierto, setClienteAbierto] = useState(null)
@@ -73,7 +75,9 @@ function ContenidoClientes() {
       const body = {
         nombre: nombre.trim(),
         telefono: telefono.trim() || null,
-        email: email.trim() || null
+        email: email.trim() || null,
+        documento_tipo: documentoTipo || null,
+        documento_numero: documentoNumero.trim() || null
       }
 
       const res = await fetch('/api/clientes', {
@@ -169,6 +173,8 @@ function ContenidoClientes() {
     setNombre(cl.nombre || '')
     setTelefono(cl.telefono || '')
     setEmail(cl.email || '')
+    setDocumentoTipo(cl.documento_tipo || 'DNI')
+    setDocumentoNumero(cl.documento_numero || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -177,6 +183,8 @@ function ContenidoClientes() {
     setNombre('')
     setTelefono('')
     setEmail('')
+    setDocumentoTipo('DNI')
+    setDocumentoNumero('')
   }
 
   function limpiarFormAuto() {
@@ -199,6 +207,7 @@ function ContenidoClientes() {
         c.nombre?.toLowerCase() ?? '',
         c.email?.toLowerCase() ?? '',
         c.telefono?.toLowerCase() ?? '',
+        c.documento_numero?.toLowerCase() ?? '',
         ...(c.autos ?? []).map((a) => a.patente?.toLowerCase() ?? '')
       ])
     )
@@ -328,6 +337,32 @@ function ContenidoClientes() {
                 className={claseInput}
               />
             </div>
+
+            <div>
+              <label className={claseLabel}>Tipo de documento</label>
+              <select
+                value={documentoTipo}
+                onChange={(e) => setDocumentoTipo(e.target.value)}
+                className={claseInput}
+              >
+                <option value="DNI">DNI</option>
+                <option value="CUIT">CUIT</option>
+                <option value="CUIL">CUIL</option>
+                <option value="PASAPORTE">Pasaporte</option>
+                <option value="CI">CI / Ext</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={claseLabel}>N° de documento</label>
+              <input
+                inputMode="numeric"
+                placeholder="Para facturar (DNI/CUIT)"
+                value={documentoNumero}
+                onChange={(e) => setDocumentoNumero(e.target.value)}
+                className={claseInput}
+              />
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -357,6 +392,7 @@ function ContenidoClientes() {
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Nombre</th>
+                <th className="px-4 py-3">Documento</th>
                 <th className="px-4 py-3">Teléfono</th>
                 <th className="hidden px-4 py-3 md:table-cell">Email</th>
                 <th className="hidden px-4 py-3 lg:table-cell">Autos</th>
@@ -368,7 +404,7 @@ function ContenidoClientes() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => (
+                    {Array.from({ length: 7 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 animate-pulse rounded bg-slate-200" />
                       </td>
@@ -377,7 +413,7 @@ function ContenidoClientes() {
                 ))
               ) : clientesFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <p className="font-medium text-slate-600">
                       {clientes.length === 0
                         ? 'No hay clientes cargados.'
@@ -415,6 +451,13 @@ function ContenidoClientes() {
                               {abierto ? '▲' : '▼'}
                             </span>
                           </button>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-slate-700">
+                            {c.documento_numero
+                              ? `${c.documento_tipo || 'DNI'} ${c.documento_numero}`
+                              : '--'}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-slate-600">{c.telefono || '--'}</td>
                         <td className="hidden px-4 py-3 text-slate-600 md:table-cell">
@@ -456,7 +499,7 @@ function ContenidoClientes() {
 
                       {abierto && (
                         <tr className="bg-slate-50/70">
-                          <td colSpan={6} className="px-4 py-4">
+                          <td colSpan={7} className="px-4 py-4">
                             <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
                               Autos de {c.nombre}
                             </h3>

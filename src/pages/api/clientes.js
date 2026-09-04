@@ -27,7 +27,7 @@ export async function POST({ request }) {
     )
   }
 
-  const { nombre, telefono, email } = body
+  const { nombre, telefono, email, documento_tipo, documento_numero } = body
 
   if (!nombre || !nombre.trim()) {
     return new Response(
@@ -36,13 +36,17 @@ export async function POST({ request }) {
     )
   }
 
+  const docNro = String(documento_numero || '').replace(/\D/g, '')
+
   const { data, error } = await supabase
     .from('clientes')
     .insert([
       {
         nombre: nombre.trim(),
         telefono: telefono || null,
-        email: email || null
+        email: email || null,
+        documento_tipo: documento_tipo || null,
+        documento_numero: docNro || null
       }
     ])
     .select()
@@ -66,7 +70,7 @@ export async function PUT({ request }) {
     )
   }
 
-  const { id, nombre, telefono, email } = body
+  const { id, nombre, telefono, email, documento_tipo, documento_numero } = body
 
   if (!id) {
     return new Response(
@@ -75,12 +79,16 @@ export async function PUT({ request }) {
     )
   }
 
+  const docNro = String(documento_numero || '').replace(/\D/g, '')
+
   const { data, error } = await supabase
     .from('clientes')
     .update({
       nombre: nombre?.trim(),
       telefono: telefono || null,
-      email: email || null
+      email: email || null,
+      documento_tipo: documento_tipo || null,
+      documento_numero: docNro || null
     })
     .eq('id', id)
     .select()
