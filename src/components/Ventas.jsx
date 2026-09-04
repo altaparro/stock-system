@@ -43,6 +43,17 @@ function ContenidoVentas() {
   const [nuevoClienteTelefono, setNuevoClienteTelefono] = useState('')
   const [nuevoClienteEmail, setNuevoClienteEmail] = useState('')
   const [guardandoCliente, setGuardandoCliente] = useState(false)
+  const [ventaEditando, setVentaEditando] = useState(null)
+  const [editCarrito, setEditCarrito] = useState([])
+  const [editManoObraDesc, setEditManoObraDesc] = useState('')
+  const [editManoObraMonto, setEditManoObraMonto] = useState('')
+  const [editMedioPagoId, setEditMedioPagoId] = useState('')
+  const [editClienteId, setEditClienteId] = useState('')
+  const [editBusqueda, setEditBusqueda] = useState('')
+  const [editProductoId, setEditProductoId] = useState('')
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
+  const [modalEliminarId, setModalEliminarId] = useState(null)
+  const [procesandoEliminar, setProcesandoEliminar] = useState(false)
 
   async function obtenerDatos() {
     try {
@@ -202,6 +213,178 @@ function ContenidoVentas() {
       setError(err.message)
     } finally {
       setProcesando(false)
+    }
+  }
+
+  function abrirEditar(v) {
+    setVentaEditando(v)
+    setEditCarrito(
+      (v.detalle ?? []).map((d) => ({
+        producto_id: d.producto_id,
+        nombre_producto: d.nombre_producto,
+        codigo_producto: d.codigo_producto,
+        cantidad: d.cantidad,
+        precio_unitario: Number(d.precio_unitario) || 0
+      }))
+    )
+    setEditManoObraDesc(v.mano_obra_descripcion || '')
+    setEditManoObraMonto(v.mano_obra_monto ? String(v.mano_obra_monto) : '')
+    setEditMedioPagoId(v.medio_pago_id ? String(v.medio_pago_id) : '')
+    setEditClienteId(v.cliente_id ? String(v.cliente_id) : '')
+    setEditBusqueda('')
+    setEditProductoId('')
+    setError('')
+  }
+
+  function cerrarEditar() {
+    setVentaEditando(null)
+    setEditCarrito([])
+    setEditManoObraDesc('')
+    setEditManoObraMonto('')
+    setEditMedioPagoId('')
+    setEditClienteId('')
+    setEditBusqueda('')
+    setEditProductoId('')
+    setError('')
+  }
+
+  function cambiarCantidadEdit(id, delta) {
+    setEditCarrito((prev) =>
+      prev.map((i) => {
+        if (i.producto_id !== id) return i
+        const prod = productos.find((p) => p.id === id)
+        const max = Math.max(prod?.stock || 0, i.cantidad)
+        const nueva = Math.min(Math.max(i.cantidad + delta, 1), max)
+        return { ...i, cantidad: nueva }
+      })
+    )
+  }
+
+  function quitarEditItem(id) {
+    setEditCarrito((prev) => prev.filter((i) => i.producto_id !== id))
+  }
+
+  function agregarProductoEdit() {
+    if (!editProductoId) return
+    const prod = productos.find((p) => String(p.id) === String(editProductoId))
+    if (!prod) return
+
+    setEditCarrito((prev) => {
+      const existente = prev.find((i) => i.producto_id === prod.id)
+      if (existente) {
+        const max = Math.max(prod.stock || 0, existente.cantidad)
+        if (existente.cantidad >= max) return prev
+        return prev.map((i) =>
+          i.producto_id === prod.id
+            ? { ...i, cantidad: i.cantidad + 1, precio_unitario: prod.precio_venta || 0 }
+            : i
+        )
+      }
+      if ((prod.stock || 0) <= 0) return prev
+      return [
+        ...prev,
+        {
+          producto_id: prod.id,
+          nombre_producto: prod.nombre,
+          codigo_producto: prod.codigo,
+          cantidad: 1,
+          precio_unitario: prod.precio_venta || 0
+        }
+      ]
+    })
+    setEditProductoId('')
+  }
+
+  const editProductosFiltrados = useMemo(() => {
+    if (!editBusqueda.trim()) return productos
+    return productos.filter((p) =>
+      coincideBusqueda(editBusqueda, [
+        p.nombre?.toLowerCase() ?? '',
+        p.codigo?.toLowerCase() ?? '',
+        p.marca?.toLowerCase() ?? ''
+      ])
+    )
+  }, [productos, editBusqueda])
+
+  const editSubtotal = useMemo(
+    () =>
+      editCarrito.reduce(
+        (acc, i) => acc + (i.precio_unitario || 0) * i.cantidad,
+        0
+      ) + (Number(editManoObraMonto) || 0),
+    [editCarrito, editManoObraMonto]
+  )
+
+  const editMedioSeleccionado = medios.find(
+    (m) => String(m.id) === String(editMedioPagoId)
+  )
+  const editInteresPct = Number(editMedioSeleccionado?.interes || 0)
+  const editMontoInteres = (editSubtotal * editInteresPct) / 100
+  const editTotal = editSubtotal + editMontoInteres
+
+  async function guardarEdicion() {
+    try {
+      setGuardandoEdicion(true)
+      setError('')
+
+      if (editCarrito.length === 0 && !editManoObraMonto) return
+
+      const res = await fetch('/api/ventas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          editar: true,
+          venta_id: Number(ventaEditando.id),
+          medio_pago_id: Number(editMedioPagoId),
+          mano_obra_descripcion: editManoObraDesc.trim() || null,
+          mano_obra_monto: Number(editManoObraMonto) || 0,
+          cliente_id: editClienteId ? Number(editClienteId) : null,
+          items: editCarrito.map((i) => ({
+            producto_id: i.producto_id,
+            cantidad: i.cantidad
+          }))
+        })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al editar la venta')
+      }
+
+      setVentaExitosa(data)
+      cerrarEditar()
+      await obtenerDatos()
+    } catch (err) {
+      console.error(err)
+      setError(err.message)
+    } finally {
+      setGuardandoEdicion(false)
+    }
+  }
+
+  async function confirmarEliminar() {
+    try {
+      setProcesandoEliminar(true)
+      setError('')
+
+      const res = await fetch(`/api/ventas?id=${modalEliminarId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Error al eliminar la venta')
+      }
+
+      setModalEliminarId(null)
+      setVentaAbierta(null)
+      await obtenerDatos()
+    } catch (err) {
+      console.error(err)
+      setError(err.message)
+    } finally {
+      setProcesandoEliminar(false)
     }
   }
 
@@ -718,6 +901,32 @@ function ContenidoVentas() {
                                   </li>
                                 )}
                               </ul>
+
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => abrirEditar(v)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-orange-700"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.86 4.49a1.9 1.9 0 0 1 2.68 2.68l-9.41 9.42-3.7.9.9-3.7 9.53-9.3Z M13.5 6.6l3.9 3.9" />
+                                  </svg>
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setModalEliminarId(v.id)
+                                    setError('')
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m1 0v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7h10Z" />
+                                  </svg>
+                                  Eliminar
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )}
@@ -809,6 +1018,299 @@ function ContenidoVentas() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {ventaEditando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Editar venta #{ventaEditando.id}</h3>
+                <p className="text-xs text-slate-500">
+                  El stock se ajusta automáticamente al guardar
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={cerrarEditar}
+                className="text-slate-400 transition hover:text-slate-600"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Agregar producto
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                      <IconoBuscar />
+                    </span>
+                    <input
+                      type="search"
+                      placeholder="Buscar producto..."
+                      value={editBusqueda}
+                      onChange={(e) => setEditBusqueda(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                  </div>
+                  <select
+                    value={editProductoId}
+                    onChange={(e) => setEditProductoId(e.target.value)}
+                    className="max-w-[45%] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {editProductosFiltrados.map((p) => (
+                      <option key={p.id} value={p.id} disabled={(p.stock || 0) <= 0}>
+                        {p.nombre}
+                        {p.codigo ? ` (${p.codigo})` : ''} — Stock: {p.stock}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={agregarProductoEdit}
+                    disabled={!editProductoId}
+                    className="shrink-0 rounded-lg bg-orange-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    Agregar
+                  </button>
+                </div>
+              </div>
+
+              {editCarrito.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 py-6 text-center text-sm text-slate-400">
+                  No hay productos en esta venta.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {editCarrito.map((i) => {
+                    const prod = productos.find((p) => p.id === i.producto_id)
+                    const max = Math.max(prod?.stock || 0, i.cantidad)
+                    const prodEliminado = !prod
+
+                    return (
+                      <li
+                        key={i.producto_id}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                          prodEliminado ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-slate-800">
+                            {i.nombre_producto}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {fmtPrecio.format(i.precio_unitario || 0)} c/u
+                            {prod ? ` — Stock actual: ${prod.stock}` : ' — producto eliminado'}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center rounded-lg border border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => cambiarCantidadEdit(i.producto_id, -1)}
+                            className="px-2 py-1 text-sm text-slate-600 transition hover:bg-slate-100"
+                          >
+                            −
+                          </button>
+                          <span className="w-8 text-center text-sm font-semibold tabular-nums">
+                            {i.cantidad}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => cambiarCantidadEdit(i.producto_id, 1)}
+                            disabled={i.cantidad >= max}
+                            className="px-2 py-1 text-sm text-slate-600 transition hover:bg-slate-100 disabled:opacity-30"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <span className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums text-slate-800">
+                          {fmtPrecio.format((i.precio_unitario || 0) * i.cantidad)}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => quitarEditItem(i.producto_id)}
+                          className="shrink-0 text-slate-400 transition hover:text-red-600"
+                          aria-label={`Quitar ${i.nombre_producto}`}
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Mano de obra
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Descripción..."
+                    value={editManoObraDesc}
+                    onChange={(e) => setEditManoObraDesc(e.target.value)}
+                    className="mb-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  />
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Monto"
+                      value={editManoObraMonto}
+                      onChange={(e) => setEditManoObraMonto(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Medio de pago
+                  </label>
+                  <select
+                    value={editMedioPagoId}
+                    onChange={(e) => setEditMedioPagoId(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  >
+                    {medios.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nombre}
+                        {Number(m.interes) > 0 ? ` (+${m.interes}%)` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="mb-1 mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Cliente
+                  </label>
+                  <select
+                    value={editClienteId}
+                    onChange={(e) => setEditClienteId(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                  >
+                    <option value="">Sin cliente</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                        {c.telefono ? ` — ${c.telefono}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 px-6 py-4">
+              <dl className="mb-4 space-y-1.5 text-sm">
+                <div className="flex justify-between text-slate-600">
+                  <dt>Subtotal</dt>
+                  <dd className="tabular-nums">{fmtPrecio.format(editSubtotal)}</dd>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <dt>
+                    Interés {editMedioSeleccionado ? `(${editInteresPct}%)` : ''}
+                  </dt>
+                  <dd className="tabular-nums">{fmtPrecio.format(editMontoInteres)}</dd>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold text-slate-900">
+                  <dt>Total</dt>
+                  <dd className="tabular-nums">{fmtPrecio.format(editTotal)}</dd>
+                </div>
+              </dl>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarEditar}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={guardarEdicion}
+                  disabled={
+                    (editCarrito.length === 0 && !editManoObraMonto) ||
+                    guardandoEdicion ||
+                    !editMedioPagoId
+                  }
+                  className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalEliminarId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Eliminar venta #{modalEliminarId}</h3>
+              <button
+                type="button"
+                onClick={() => setModalEliminarId(null)}
+                className="text-slate-400 transition hover:text-slate-600"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <p className="text-sm text-slate-600">
+              ¿Estás seguro de que querés eliminar esta venta?{' '}
+              <strong>El stock de los productos se restablecerá</strong> y no se
+              podrá deshacer.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setModalEliminarId(null)}
+                disabled={procesandoEliminar}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarEliminar}
+                disabled={procesandoEliminar}
+                className="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {procesandoEliminar ? 'Eliminando...' : 'Eliminar venta'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -53,12 +53,41 @@ export async function POST({ request }) {
     )
   }
 
+  const itemsNorm = items.map((i) => ({
+    producto_id: Number(i.producto_id),
+    cantidad: Number(i.cantidad)
+  }))
+
+  if (body?.editar) {
+    // Edición: editar_venta restaura el stock original, elimina la venta vieja
+    // y crea la nueva (revalidando stock) de forma atómica. Si falla por stock
+    // insuficiente, la venta original queda intacta.
+    const ventaId = Number(body.venta_id)
+    if (!Number.isInteger(ventaId)) {
+      return new Response(JSON.stringify({ error: 'ID de venta inválido' }), {
+        status: 400
+      })
+    }
+
+    const { data: editada, error: errEditar } = await supabase.rpc('editar_venta', {
+      p_venta_id: ventaId,
+      p_medio_pago_id: medioPagoId,
+      p_items: itemsNorm,
+      p_mano_obra_descripcion: manoObraDesc,
+      p_mano_obra_monto: manoObraMonto,
+      p_cliente_id: clienteId
+    })
+
+    if (errEditar) {
+      return new Response(JSON.stringify({ error: errEditar.message }), { status: 400 })
+    }
+
+    return new Response(JSON.stringify(editada), { status: 200 })
+  }
+
   const { data, error } = await supabase.rpc('registrar_venta', {
     p_medio_pago_id: medioPagoId,
-    p_items: items.map((i) => ({
-      producto_id: Number(i.producto_id),
-      cantidad: Number(i.cantidad)
-    })),
+    p_items: itemsNorm,
     p_mano_obra_descripcion: manoObraDesc,
     p_mano_obra_monto: manoObraMonto,
     p_cliente_id: clienteId
@@ -69,4 +98,24 @@ export async function POST({ request }) {
   }
 
   return new Response(JSON.stringify(data), { status: 201 })
+}
+
+export async function DELETE({ request }) {
+  const url = new URL(request.url)
+  const id = Number(url.searchParams.get('id'))
+
+  if (!Number.isInteger(id)) {
+    return new Response(JSON.stringify({ error: 'ID de venta inválido' }), {
+      status: 400
+    })
+  }
+
+  // Restaura el stock del detalle y elimina la venta de forma atómica
+  const { data, error } = await supabase.rpc('eliminar_venta', { p_venta_id: id })
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 400 })
+  }
+
+  return new Response(JSON.stringify({ ok: true }), { status: 200 })
 }
