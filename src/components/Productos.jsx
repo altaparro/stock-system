@@ -596,6 +596,7 @@ function ContenidoProductos() {
                         )}
                       </td>
                       <td className="px-3 py-3">
+                        {p.marca ? (
                           <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
                             {p.marca}
                           </span>
