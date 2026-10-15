@@ -35,6 +35,7 @@ function ContenidoProductos() {
   const [precioCompra, setPrecioCompra] = useState('')
   const [tipoId, setTipoId] = useState('')
   const [proveedorId, setProveedorId] = useState('')
+  const [imagen, setImagen] = useState('')
 
   const [nuevoTipoVisible, setNuevoTipoVisible] = useState(false)
   const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
@@ -129,7 +130,8 @@ function ContenidoProductos() {
         precio_venta: Number(precio || 0),
         precio_compra: Number(precioCompra || 0),
         tipo_producto_id: tipoId || null,
-        proveedor_id: proveedorId || null
+        proveedor_id: proveedorId || null,
+        imagen: imagen || null
       }
 
       const res = await fetch('/api/productos', {
@@ -173,6 +175,7 @@ function ContenidoProductos() {
     setPrecioCompra(producto.precio_compra || '')
     setTipoId(producto.tipo_producto_id || '')
     setProveedorId(producto.proveedor_id || '')
+    setImagen(producto.imagen || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -186,6 +189,7 @@ function ContenidoProductos() {
     setPrecioCompra('')
     setTipoId('')
     setProveedorId('')
+    setImagen('')
     setNuevoTipoVisible(false)
     setNuevoTipoNombre('')
   }
@@ -362,6 +366,17 @@ function ContenidoProductos() {
             </div>
 
             <div>
+              <label className={claseLabel}>Imagen (URL)</label>
+              <input
+                type="url"
+                placeholder="https://ejemplo.com/imagen.jpg"
+                value={imagen}
+                onChange={(e) => setImagen(e.target.value)}
+                className={claseInput}
+              />
+            </div>
+
+            <div>
               <label className={claseLabel}>Nombre *</label>
               <input
                 placeholder="Ej: Coca-Cola 500ml"
@@ -518,6 +533,7 @@ function ContenidoProductos() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-3 py-3">ID</th>
+                <th className="px-3 py-3">Imagen</th>
                 <th className="px-3 py-3">Marca</th>
                 <th className="px-3 py-3">Nombre</th>
                 <th className="px-3 py-3">Código</th>
@@ -535,7 +551,7 @@ function ContenidoProductos() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 11 }).map((_, j) => (
+                    {Array.from({ length: 12 }).map((_, j) => (
                       <td key={j} className="px-3 py-3">
                         <div className="h-4 animate-pulse rounded bg-slate-200" />
                       </td>
@@ -544,7 +560,7 @@ function ContenidoProductos() {
                 ))
               ) : productosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center">
+                  <td colSpan={12} className="px-4 py-12 text-center">
                     <p className="font-medium text-slate-600">
                       {productos.length === 0
                         ? 'No hay productos cargados.'
@@ -569,7 +585,17 @@ function ContenidoProductos() {
                     <tr key={p.id} className="transition hover:bg-slate-50">
                       <td className="px-3 py-3 text-slate-400">{p.id}</td>
                       <td className="px-3 py-3">
-                        {p.marca ? (
+                        {p.imagen ? (
+                          <img
+                            src={p.imagen}
+                            alt={p.nombre}
+                            className="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200"
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
                           <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
                             {p.marca}
                           </span>
