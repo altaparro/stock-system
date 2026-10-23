@@ -7,7 +7,8 @@ const paginas = [
   { key: 'presupuestos', href: '/presupuestos', label: 'Presupuestos' },
   { key: 'clientes', href: '/clientes', label: 'Clientes' },
   { key: 'proveedores', href: '/proveedores', label: 'Proveedores' },
-  { key: 'contaduria', href: '/contaduria', label: 'Contaduría' }
+  { key: 'contaduria', href: '/contaduria', label: 'Contaduría' },
+  { key: 'configuracion', href: '/configuracion', label: 'Configuración' }
 ]
 
 export default function Nav({ activo }) {

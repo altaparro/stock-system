@@ -1,6 +1,16 @@
 import { supabase } from '../../lib/supabase'
+import { encolar, procesarCola } from '../../lib/metaCatalog'
 
 export const prerender = false
+
+async function sincronizarWhatsApp(productoId, accion) {
+  try {
+    await encolar(productoId, accion)
+    await procesarCola()
+  } catch (err) {
+    console.error('[whatsapp] sincronización de producto:', err.message)
+  }
+}
 
 export async function GET() {
   const { data, error } = await supabase
@@ -50,12 +60,24 @@ export async function POST({ request }) {
     return new Response(JSON.stringify({ error }), { status: 500 })
   }
 
+  if (data?.[0]?.id) {
+    await sincronizarWhatsApp(data[0].id, 'CREATE')
+  }
+
   return new Response(JSON.stringify(data), { status: 201 })
 }
 
 export async function DELETE({ request }) {
   const url = new URL(request.url)
-  const id = url.searchParams.get('id')
+  const id = Number(url.searchParams.get('id'))
+
+  // Se encola antes de borrar: encolar() lee wa_sincronizado de la fila
+  // para decidir si corresponde enviar el DELETE al catálogo de Meta.
+  try {
+    await encolar(id, 'DELETE')
+  } catch (err) {
+    console.error('[whatsapp] encolar DELETE:', err.message)
+  }
 
   const { error } = await supabase
     .from('productos')
@@ -64,6 +86,12 @@ export async function DELETE({ request }) {
 
   if (error) {
     return new Response(JSON.stringify({ error }), { status: 500 })
+  }
+
+  try {
+    await procesarCola()
+  } catch (err) {
+    console.error('[whatsapp] procesar cola:', err.message)
   }
 
   return new Response(JSON.stringify({ success: true }), { status: 200 })
@@ -101,6 +129,10 @@ export async function PUT({ request }) {
 
   if (error) {
     return new Response(JSON.stringify({ error }), { status: 500 })
+  }
+
+  if (data?.[0]?.id) {
+    await sincronizarWhatsApp(data[0].id, 'UPDATE')
   }
 
   return new Response(JSON.stringify(data), { status: 200 })
