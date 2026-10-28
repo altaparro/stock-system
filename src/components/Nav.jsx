@@ -4,6 +4,7 @@ const paginas = [
   { key: 'inicio', href: '/', label: 'Inicio' },
   { key: 'productos', href: '/productos', label: 'Productos' },
   { key: 'ventas', href: '/ventas', label: 'Ventas' },
+  { key: 'pedidos', href: '/pedidos', label: 'Pedidos' },
   { key: 'presupuestos', href: '/presupuestos', label: 'Presupuestos' },
   { key: 'clientes', href: '/clientes', label: 'Clientes' },
   { key: 'proveedores', href: '/proveedores', label: 'Proveedores' },
