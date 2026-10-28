@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Nav from './Nav'
 import { fmtPrecio } from '../lib/format'
 import { coincideBusqueda } from '../lib/busqueda'
+import { supabase } from '../lib/supabase'
 import { PaginaProtegida } from './Auth'
 
 function IconoBuscar() {
@@ -36,6 +37,13 @@ function ContenidoProductos() {
   const [tipoId, setTipoId] = useState('')
   const [proveedorId, setProveedorId] = useState('')
   const [imagen, setImagen] = useState('')
+  const [archivo, setArchivo] = useState(null)
+  const [verImagen, setVerImagen] = useState(null)
+
+  const vistaPrevia = useMemo(
+    () => (archivo ? URL.createObjectURL(archivo) : imagen || ''),
+    [archivo, imagen]
+  )
 
   const [nuevoTipoVisible, setNuevoTipoVisible] = useState(false)
   const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
@@ -122,6 +130,22 @@ function ContenidoProductos() {
         return
       }
 
+      let imagenUrl = imagen
+
+      if (archivo) {
+        const extension = ((archivo.name.split('.').pop() || 'img').toLowerCase()).replace(/[^a-z0-9]/g, '')
+        const ruta = `producto-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
+
+        const { error: errSubir } = await supabase.storage
+          .from('productos')
+          .upload(ruta, archivo, { contentType: archivo.type })
+
+        if (errSubir) throw new Error(`No se pudo subir la imagen: ${errSubir.message}`)
+
+        const { data: publica } = supabase.storage.from('productos').getPublicUrl(ruta)
+        imagenUrl = publica.publicUrl
+      }
+
       const body = {
         nombre,
         codigo,
@@ -131,7 +155,7 @@ function ContenidoProductos() {
         precio_compra: Number(precioCompra || 0),
         tipo_producto_id: tipoId || null,
         proveedor_id: proveedorId || null,
-        imagen: imagen || null
+        imagen: imagenUrl || null
       }
 
       const res = await fetch('/api/productos', {
@@ -176,6 +200,7 @@ function ContenidoProductos() {
     setTipoId(producto.tipo_producto_id || '')
     setProveedorId(producto.proveedor_id || '')
     setImagen(producto.imagen || '')
+    setArchivo(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -190,6 +215,7 @@ function ContenidoProductos() {
     setTipoId('')
     setProveedorId('')
     setImagen('')
+    setArchivo(null)
     setNuevoTipoVisible(false)
     setNuevoTipoNombre('')
   }
@@ -366,14 +392,49 @@ function ContenidoProductos() {
             </div>
 
             <div>
-              <label className={claseLabel}>Imagen (URL)</label>
+              <label className={claseLabel}>Imagen</label>
               <input
-                type="url"
-                placeholder="https://ejemplo.com/imagen.jpg"
-                value={imagen}
-                onChange={(e) => setImagen(e.target.value)}
-                className={claseInput}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  if (f && !f.type.startsWith('image/')) {
+                    setError('Solo se pueden subir imágenes')
+                    return
+                  }
+                  if (f && f.size > 10 * 1024 * 1024) {
+                    setError('La imagen no puede superar 10 MB')
+                    return
+                  }
+                  setError('')
+                  setArchivo(f)
+                }}
+                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-orange-700 hover:file:bg-orange-100"
               />
+              {vistaPrevia && (
+                <div className="mt-2 flex items-center gap-3">
+                  <img
+                    src={vistaPrevia}
+                    alt="Vista previa"
+                    className="h-14 w-14 rounded-lg object-cover ring-1 ring-slate-200"
+                  />
+                  <div className="text-xs text-slate-500">
+                    <p className="max-w-40 truncate">
+                      {archivo ? archivo.name : 'Imagen actual'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setArchivo(null)
+                        setImagen('')
+                      }}
+                      className="mt-1 font-medium text-red-500 transition hover:text-red-700"
+                    >
+                      Quitar imagen
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -589,7 +650,8 @@ function ContenidoProductos() {
                           <img
                             src={p.imagen}
                             alt={p.nombre}
-                            className="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200"
+                            onClick={() => setVerImagen({ src: p.imagen, nombre: p.nombre })}
+                            className="h-12 w-12 cursor-zoom-in rounded-lg object-cover ring-1 ring-slate-200 transition hover:ring-orange-300"
                           />
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
@@ -686,6 +748,31 @@ function ContenidoProductos() {
           {productosFiltrados.length} de {productos.length} productos
         </footer>
       </div>
+
+      {verImagen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-6"
+          onClick={() => setVerImagen(null)}
+        >
+          <div className="max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={verImagen.src}
+              alt={verImagen.nombre}
+              className="max-h-[75vh] w-auto max-w-full rounded-xl bg-white object-contain p-2"
+            />
+            <p className="mt-3 text-center text-sm font-medium text-white">
+              {verImagen.nombre}
+            </p>
+            <button
+              type="button"
+              onClick={() => setVerImagen(null)}
+              className="mx-auto mt-4 block rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
