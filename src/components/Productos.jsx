@@ -36,7 +36,6 @@ function ContenidoProductos() {
   const [tipoId, setTipoId] = useState('')
   const [proveedorId, setProveedorId] = useState('')
   const [imagen, setImagen] = useState('')
-  const [visibleTienda, setVisibleTienda] = useState(false)
 
   const [nuevoTipoVisible, setNuevoTipoVisible] = useState(false)
   const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
@@ -132,8 +131,7 @@ function ContenidoProductos() {
         precio_compra: Number(precioCompra || 0),
         tipo_producto_id: tipoId || null,
         proveedor_id: proveedorId || null,
-        imagen: imagen || null,
-        visible_tienda: visibleTienda
+        imagen: imagen || null
       }
 
       const res = await fetch('/api/productos', {
@@ -178,7 +176,6 @@ function ContenidoProductos() {
     setTipoId(producto.tipo_producto_id || '')
     setProveedorId(producto.proveedor_id || '')
     setImagen(producto.imagen || '')
-    setVisibleTienda(!!producto.visible_tienda)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -193,7 +190,6 @@ function ContenidoProductos() {
     setTipoId('')
     setProveedorId('')
     setImagen('')
-    setVisibleTienda(false)
     setNuevoTipoVisible(false)
     setNuevoTipoNombre('')
   }
@@ -469,18 +465,6 @@ function ContenidoProductos() {
                 className={claseInput}
               />
             </div>
-
-            <div className="flex items-end pb-2">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={visibleTienda}
-                  onChange={(e) => setVisibleTienda(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
-                />
-                Visible en la tienda
-              </label>
-            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -620,14 +604,7 @@ function ContenidoProductos() {
                           <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 font-medium text-slate-800">
-                        {p.nombre}
-                        {p.visible_tienda && (
-                          <span className="ml-2 inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700 ring-1 ring-inset ring-orange-200">
-                            Tienda
-                          </span>
-                        )}
-                      </td>
+                      <td className="px-3 py-3 font-medium text-slate-800">{p.nombre}</td>
                       <td className="px-3 py-3">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
                           {p.codigo}
