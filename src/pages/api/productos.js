@@ -37,7 +37,7 @@ export async function POST({ request }) {
     )
   }
 
-  const { nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id, proveedor_id, imagen } = body
+  const { nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id, proveedor_id, descripcion, imagenes } = body
 
   const { data, error } = await supabase
     .from('productos')
@@ -51,7 +51,9 @@ export async function POST({ request }) {
         precio_compra: Number(precio_compra || 0),
         tipo_producto_id: tipo_producto_id || null,
         proveedor_id: proveedor_id || null,
-        imagen: imagen || null
+        descripcion: descripcion || null,
+        imagen: imagenes?.[0] || null,
+        imagenes: imagenes?.length ? imagenes : null
       }
     ])
     .select()
@@ -109,7 +111,7 @@ export async function PUT({ request }) {
     )
   }
 
-  const { id, nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id, proveedor_id, imagen } = body
+  const { id, nombre, codigo, marca, stock, precio_venta, precio_compra, tipo_producto_id, proveedor_id, descripcion, imagenes } = body
 
   const { data, error } = await supabase
     .from('productos')
@@ -122,7 +124,9 @@ export async function PUT({ request }) {
       precio_compra: Number(precio_compra || 0),
       tipo_producto_id: tipo_producto_id || null,
       proveedor_id: proveedor_id || null,
-      imagen: imagen || null
+      descripcion: descripcion || null,
+      imagen: imagenes?.[0] || null,
+      imagenes: imagenes?.length ? imagenes : null
     })
     .eq('id', id)
     .select()

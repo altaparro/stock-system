@@ -36,14 +36,30 @@ function ContenidoProductos() {
   const [precioCompra, setPrecioCompra] = useState('')
   const [tipoId, setTipoId] = useState('')
   const [proveedorId, setProveedorId] = useState('')
-  const [imagen, setImagen] = useState('')
-  const [archivo, setArchivo] = useState(null)
+  const [descripcion, setDescripcion] = useState('')
+  const [imagenes, setImagenes] = useState([])
+  const [archivos, setArchivos] = useState([])
   const [verImagen, setVerImagen] = useState(null)
 
-  const vistaPrevia = useMemo(
-    () => (archivo ? URL.createObjectURL(archivo) : imagen || ''),
-    [archivo, imagen]
+  const archivosPrevios = useMemo(
+    () => archivos.map((a) => ({ src: URL.createObjectURL(a), nombre: a.name, archivo: a })),
+    [archivos]
   )
+
+  useEffect(() => {
+    if (!verImagen) return
+    function onKey(e) {
+      if (e.key === 'Escape') setVerImagen(null)
+      if (e.key === 'ArrowRight') {
+        setVerImagen((v) => ({ ...v, indice: (v.indice + 1) % v.imagenes.length }))
+      }
+      if (e.key === 'ArrowLeft') {
+        setVerImagen((v) => ({ ...v, indice: (v.indice - 1 + v.imagenes.length) % v.imagenes.length }))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [verImagen])
 
   const [nuevoTipoVisible, setNuevoTipoVisible] = useState(false)
   const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
@@ -130,20 +146,20 @@ function ContenidoProductos() {
         return
       }
 
-      let imagenUrl = imagen
+      let imagenesFinales = [...imagenes]
 
-      if (archivo) {
-        const extension = ((archivo.name.split('.').pop() || 'img').toLowerCase()).replace(/[^a-z0-9]/g, '')
+      for (const f of archivos) {
+        const extension = ((f.name.split('.').pop() || 'img').toLowerCase()).replace(/[^a-z0-9]/g, '')
         const ruta = `producto-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
 
         const { error: errSubir } = await supabase.storage
           .from('productos')
-          .upload(ruta, archivo, { contentType: archivo.type })
+          .upload(ruta, f, { contentType: f.type })
 
-        if (errSubir) throw new Error(`No se pudo subir la imagen: ${errSubir.message}`)
+        if (errSubir) throw new Error(`No se pudo subir la imagen ${f.name}: ${errSubir.message}`)
 
         const { data: publica } = supabase.storage.from('productos').getPublicUrl(ruta)
-        imagenUrl = publica.publicUrl
+        imagenesFinales.push(publica.publicUrl)
       }
 
       const body = {
@@ -155,7 +171,8 @@ function ContenidoProductos() {
         precio_compra: Number(precioCompra || 0),
         tipo_producto_id: tipoId || null,
         proveedor_id: proveedorId || null,
-        imagen: imagenUrl || null
+        descripcion: descripcion || null,
+        imagenes: imagenesFinales
       }
 
       const res = await fetch('/api/productos', {
@@ -199,8 +216,9 @@ function ContenidoProductos() {
     setPrecioCompra(producto.precio_compra || '')
     setTipoId(producto.tipo_producto_id || '')
     setProveedorId(producto.proveedor_id || '')
-    setImagen(producto.imagen || '')
-    setArchivo(null)
+    setDescripcion(producto.descripcion || '')
+    setImagenes(producto.imagenes?.length ? producto.imagenes : producto.imagen ? [producto.imagen] : [])
+    setArchivos([])
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -214,8 +232,9 @@ function ContenidoProductos() {
     setPrecioCompra('')
     setTipoId('')
     setProveedorId('')
-    setImagen('')
-    setArchivo(null)
+    setDescripcion('')
+    setImagenes([])
+    setArchivos([])
     setNuevoTipoVisible(false)
     setNuevoTipoNombre('')
   }
@@ -392,52 +411,6 @@ function ContenidoProductos() {
             </div>
 
             <div>
-              <label className={claseLabel}>Imagen</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] || null
-                  if (f && !f.type.startsWith('image/')) {
-                    setError('Solo se pueden subir imágenes')
-                    return
-                  }
-                  if (f && f.size > 10 * 1024 * 1024) {
-                    setError('La imagen no puede superar 10 MB')
-                    return
-                  }
-                  setError('')
-                  setArchivo(f)
-                }}
-                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-orange-700 hover:file:bg-orange-100"
-              />
-              {vistaPrevia && (
-                <div className="mt-2 flex items-center gap-3">
-                  <img
-                    src={vistaPrevia}
-                    alt="Vista previa"
-                    className="h-14 w-14 rounded-lg object-cover ring-1 ring-slate-200"
-                  />
-                  <div className="text-xs text-slate-500">
-                    <p className="max-w-40 truncate">
-                      {archivo ? archivo.name : 'Imagen actual'}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setArchivo(null)
-                        setImagen('')
-                      }}
-                      className="mt-1 font-medium text-red-500 transition hover:text-red-700"
-                    >
-                      Quitar imagen
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
               <label className={claseLabel}>Nombre *</label>
               <input
                 placeholder="Ej: Coca-Cola 500ml"
@@ -525,6 +498,94 @@ function ContenidoProductos() {
                 onChange={(e) => setPrecioCompra(e.target.value)}
                 className={claseInput}
               />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div>
+              <label className={claseLabel}>Descripción</label>
+              <textarea
+                placeholder="Detalles del producto para la tienda..."
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                rows={5}
+                className={`${claseInput} resize-y`}
+              />
+            </div>
+
+            <div>
+              <label className={claseLabel}>Imágenes (la primera es la portada)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  const nuevos = Array.from(e.target.files || [])
+                  if (nuevos.some((f) => !f.type.startsWith('image/'))) {
+                    setError('Solo se pueden subir imágenes')
+                    return
+                  }
+                  if (nuevos.some((f) => f.size > 10 * 1024 * 1024)) {
+                    setError('Las imágenes no pueden superar 10 MB')
+                    return
+                  }
+                  setError('')
+                  setArchivos((prev) => [...prev, ...nuevos])
+                  e.target.value = ''
+                }}
+                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-orange-700 hover:file:bg-orange-100"
+              />
+
+              {(imagenes.length > 0 || archivosPrevios.length > 0) && (
+                <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5">
+                  {imagenes.map((src, i) => (
+                    <div key={src} className="relative">
+                      <img
+                        src={src}
+                        alt={`Imagen ${i + 1}`}
+                        title="Hacer portada"
+                        onClick={() => setImagenes((prev) => [src, ...prev.filter((_, j) => j !== i)])}
+                        className={`aspect-square w-full cursor-pointer rounded-lg object-cover ring-2 transition ${
+                          i === 0 ? 'ring-orange-500' : 'ring-slate-200 hover:ring-orange-300'
+                        }`}
+                      />
+                      {i === 0 && (
+                        <span className="absolute left-1 top-1 rounded bg-orange-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          Portada
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setImagenes((prev) => prev.filter((_, j) => j !== i))}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow transition hover:bg-red-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {archivosPrevios.map((a, i) => (
+                    <div key={a.src} className="relative">
+                      <img
+                        src={a.src}
+                        alt={a.nombre}
+                        title="Mover al principio"
+                        onClick={() => setArchivos((prev) => [a.archivo, ...prev.filter((_, j) => j !== i)])}
+                        className="aspect-square w-full cursor-pointer rounded-lg object-cover ring-2 ring-amber-300 transition hover:ring-amber-500"
+                      />
+                      <span className="absolute left-1 top-1 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        Nueva
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setArchivos((prev) => prev.filter((_, j) => j !== i))}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow transition hover:bg-red-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -650,7 +711,10 @@ function ContenidoProductos() {
                           <img
                             src={p.imagen}
                             alt={p.nombre}
-                            onClick={() => setVerImagen({ src: p.imagen, nombre: p.nombre })}
+                            onClick={() => {
+                              const lista = p.imagenes?.length ? p.imagenes : p.imagen ? [p.imagen] : []
+                              if (lista.length) setVerImagen({ imagenes: lista, nombre: p.nombre, indice: 0 })
+                            }}
                             className="h-12 w-12 cursor-zoom-in rounded-lg object-cover ring-1 ring-slate-200 transition hover:ring-orange-300"
                           />
                         ) : (
@@ -755,13 +819,42 @@ function ContenidoProductos() {
           onClick={() => setVerImagen(null)}
         >
           <div className="max-w-3xl" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={verImagen.src}
-              alt={verImagen.nombre}
-              className="max-h-[75vh] w-auto max-w-full rounded-xl bg-white object-contain p-2"
-            />
+            <div className="relative">
+              <img
+                src={verImagen.imagenes[verImagen.indice]}
+                alt={verImagen.nombre}
+                className="max-h-[70vh] w-auto max-w-full rounded-xl bg-white object-contain p-2"
+              />
+              {verImagen.imagenes.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVerImagen((v) => ({ ...v, indice: (v.indice - 1 + v.imagenes.length) % v.imagenes.length }))
+                    }
+                    className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow transition hover:bg-white"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVerImagen((v) => ({ ...v, indice: (v.indice + 1) % v.imagenes.length }))
+                    }
+                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow transition hover:bg-white"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+            </div>
             <p className="mt-3 text-center text-sm font-medium text-white">
               {verImagen.nombre}
+              {verImagen.imagenes.length > 1 && (
+                <span className="ml-2 text-white/60">
+                  {verImagen.indice + 1} / {verImagen.imagenes.length}
+                </span>
+              )}
             </p>
             <button
               type="button"
