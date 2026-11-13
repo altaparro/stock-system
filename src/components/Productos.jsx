@@ -40,6 +40,7 @@ function ContenidoProductos() {
   const [imagenes, setImagenes] = useState([])
   const [archivos, setArchivos] = useState([])
   const [verImagen, setVerImagen] = useState(null)
+  const [menuAcciones, setMenuAcciones] = useState(null)
 
   const archivosPrevios = useMemo(
     () => archivos.map((a) => ({ src: URL.createObjectURL(a), nombre: a.name, archivo: a })),
@@ -60,6 +61,41 @@ function ContenidoProductos() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [verImagen])
+
+  useEffect(() => {
+    if (!menuAcciones) return
+    function cerrar() {
+      setMenuAcciones(null)
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') cerrar()
+    }
+    window.addEventListener('click', cerrar)
+    window.addEventListener('scroll', cerrar, true)
+    window.addEventListener('resize', cerrar)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('click', cerrar)
+      window.removeEventListener('scroll', cerrar, true)
+      window.removeEventListener('resize', cerrar)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [menuAcciones])
+
+  function abrirMenuAcciones(e, producto) {
+    e.stopPropagation()
+    if (menuAcciones?.producto.id === producto.id) {
+      setMenuAcciones(null)
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ancho = 160
+    const alto = 92
+    let top = rect.bottom + 6
+    if (top + alto > window.innerHeight) top = rect.top - alto - 6
+    const left = Math.max(8, Math.min(rect.right - ancho, window.innerWidth - ancho - 8))
+    setMenuAcciones({ producto, top, left })
+  }
 
   const [nuevoTipoVisible, setNuevoTipoVisible] = useState(false)
   const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
@@ -291,7 +327,7 @@ function ContenidoProductos() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+      <div className="mx-auto max-w-7xl px-4 py-10">
         {/* Encabezado */}
         <header className="mb-8">
           <Nav activo="productos" />
@@ -665,7 +701,7 @@ function ContenidoProductos() {
                 <th className="hidden px-3 py-3 text-right xl:table-cell">P. Compra</th>
                 <th className="px-3 py-3 text-right">P. Venta</th>
                 <th className="hidden px-3 py-3 text-right lg:table-cell">Ganancia</th>
-                <th className="sticky right-0 z-10 whitespace-nowrap border-l border-slate-200 bg-slate-50 px-3 py-3 text-center shadow-[-6px_0_6px_-6px_rgba(15,23,42,0.15)]">
+                <th className="sticky right-0 z-10 whitespace-nowrap border-l border-slate-200 bg-slate-50 px-2 py-3 text-center">
                   Acciones
                 </th>
               </tr>
@@ -786,19 +822,25 @@ function ContenidoProductos() {
                           {fmtPrecio.format((p.precio_venta || 0) - (p.precio_compra || 0))}
                         </span>
                       </td>
-                      <td className="sticky right-0 z-10 whitespace-nowrap border-l border-slate-100 bg-white px-3 py-3 shadow-[-6px_0_6px_-6px_rgba(15,23,42,0.12)] transition group-hover:bg-slate-50">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="sticky right-0 z-10 whitespace-nowrap border-l border-slate-100 bg-white px-2 py-3 transition group-hover:bg-slate-50">
+                        <div className="flex items-center justify-center">
                           <button
-                            onClick={() => editarProducto(p)}
-                            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                            type="button"
+                            onClick={(e) => abrirMenuAcciones(e, p)}
+                            aria-label={`Acciones de ${p.nombre}`}
+                            aria-haspopup="menu"
+                            aria-expanded={menuAcciones?.producto.id === p.id}
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                              menuAcciones?.producto.id === p.id
+                                ? 'border-orange-300 bg-orange-50 text-orange-700'
+                                : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700'
+                            }`}
                           >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => eliminarProducto(p.id)}
-                            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
-                          >
-                            Eliminar
+                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                              <circle cx="10" cy="4" r="1.6" />
+                              <circle cx="10" cy="10" r="1.6" />
+                              <circle cx="10" cy="16" r="1.6" />
+                            </svg>
                           </button>
                         </div>
                       </td>
@@ -814,6 +856,38 @@ function ContenidoProductos() {
           {productosFiltrados.length} de {productos.length} productos
         </footer>
       </div>
+
+      {menuAcciones && (
+        <div
+          role="menu"
+          className="fixed z-50 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          style={{ top: menuAcciones.top, left: menuAcciones.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              editarProducto(menuAcciones.producto)
+              setMenuAcciones(null)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              eliminarProducto(menuAcciones.producto.id)
+              setMenuAcciones(null)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
 
       {verImagen && (
         <div
