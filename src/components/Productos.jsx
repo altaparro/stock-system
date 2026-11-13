@@ -665,7 +665,9 @@ function ContenidoProductos() {
                 <th className="hidden px-3 py-3 text-right xl:table-cell">P. Compra</th>
                 <th className="px-3 py-3 text-right">P. Venta</th>
                 <th className="hidden px-3 py-3 text-right lg:table-cell">Ganancia</th>
-                <th className="whitespace-nowrap px-3 py-3 text-center">Acciones</th>
+                <th className="sticky right-0 z-10 whitespace-nowrap border-l border-slate-200 bg-slate-50 px-3 py-3 text-center shadow-[-6px_0_6px_-6px_rgba(15,23,42,0.15)]">
+                  Acciones
+                </th>
               </tr>
             </thead>
 
@@ -704,7 +706,7 @@ function ContenidoProductos() {
                   const stockBajo = (p.stock || 0) <= 5
 
                   return (
-                    <tr key={p.id} className="transition hover:bg-slate-50">
+                    <tr key={p.id} className="group transition hover:bg-slate-50">
                       <td className="px-3 py-3 text-slate-400">{p.id}</td>
                       <td className="px-3 py-3">
                         {p.imagen ? (
@@ -784,7 +786,7 @@ function ContenidoProductos() {
                           {fmtPrecio.format((p.precio_venta || 0) - (p.precio_compra || 0))}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3">
+                      <td className="sticky right-0 z-10 whitespace-nowrap border-l border-slate-100 bg-white px-3 py-3 shadow-[-6px_0_6px_-6px_rgba(15,23,42,0.12)] transition group-hover:bg-slate-50">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => editarProducto(p)}
