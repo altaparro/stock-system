@@ -7,6 +7,7 @@ import {
   fechaComprobanteHoy,
   yyyymmddToIso
 } from '../../lib/arca'
+import { enviarFacturaPorEmail } from '../../lib/mailer'
 
 export const prerender = false
 
@@ -55,7 +56,7 @@ export async function POST({ request }) {
   const { data: venta, error: errVenta } = await supabase
     .from('ventas')
     .select(
-      '*, cliente:clientes(id, nombre, documento_tipo, documento_numero), detalle:venta_detalle(producto_id, cantidad)'
+      '*, cliente:clientes(id, nombre, email, documento_tipo, documento_numero), detalle:venta_detalle(id, nombre_producto, codigo_producto, cantidad, precio_unitario, subtotal)'
     )
     .eq('id', ventaId)
     .maybeSingle()
@@ -118,6 +119,17 @@ export async function POST({ request }) {
       })
     }
 
+    let emailEnvio = null
+    try {
+      emailEnvio = await enviarFacturaPorEmail({
+        venta,
+        factura: { ...result, qrUrl }
+      })
+    } catch (err) {
+      console.error('Error al enviar el mail de la factura', ventaId, err)
+      emailEnvio = { estado: 'error', detalle: err?.message || 'Error al enviar el mail' }
+    }
+
     return new Response(
       JSON.stringify({
         venta_id: ventaId,
@@ -126,7 +138,8 @@ export async function POST({ request }) {
         cbteNro: result.cbteNro,
         ptoVta: result.ptoVta,
         total: result.importes.total,
-        qrUrl
+        qrUrl,
+        email: emailEnvio
       }),
       { status: 200 }
     )

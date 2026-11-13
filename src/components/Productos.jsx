@@ -651,7 +651,7 @@ function ContenidoProductos() {
 
         {/* Tabla */}
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1000px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-3 py-3">ID</th>
@@ -665,7 +665,7 @@ function ContenidoProductos() {
                 <th className="hidden px-3 py-3 text-right xl:table-cell">P. Compra</th>
                 <th className="px-3 py-3 text-right">P. Venta</th>
                 <th className="hidden px-3 py-3 text-right lg:table-cell">Ganancia</th>
-                <th className="px-3 py-3 text-center">Acciones</th>
+                <th className="whitespace-nowrap px-3 py-3 text-center">Acciones</th>
               </tr>
             </thead>
 
@@ -784,17 +784,17 @@ function ContenidoProductos() {
                           {fmtPrecio.format((p.precio_venta || 0) - (p.precio_compra || 0))}
                         </span>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="whitespace-nowrap px-3 py-3">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => editarProducto(p)}
-                            className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+                            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => eliminarProducto(p.id)}
-                            className="whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                            className="shrink-0 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                           >
                             Eliminar
                           </button>

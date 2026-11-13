@@ -38,6 +38,18 @@ function calculoRango(periodo, offset) {
   return { desde, hasta, etiqueta: lastPeriodoLabel(periodo, desde, hasta) }
 }
 
+function manoObraVenta(v) {
+  const guardada = Number(v.mano_obra_monto) || 0
+  if (guardada > 0) return guardada
+
+  const detalleTotal = (v.detalle ?? []).reduce(
+    (acc, d) => acc + (Number(d.subtotal) || 0),
+    0
+  )
+  const diferencia = (Number(v.total_base) || 0) - detalleTotal
+  return diferencia > 0 ? diferencia : 0
+}
+
 function lastPeriodoLabel(periodo, desde, hasta) {
   if (periodo === 'semana') {
     const desdeStr = desde.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
@@ -111,6 +123,8 @@ function ContenidoContaduria() {
         const costo = (Number(d.costo_unitario) || 0) * Number(d.cantidad || 0)
         ganancia += (Number(d.subtotal || 0) - costo)
       })
+
+      ganancia += manoObraVenta(v)
     })
 
     const margen = subtotal > 0 ? (ganancia / subtotal) * 100 : 0
@@ -293,11 +307,12 @@ function ContenidoContaduria() {
                   </tr>
                 ) : (
                   ventas.map((v) => {
-                    const ganancia = (v.detalle ?? []).reduce(
-                      (acc, d) =>
-                        acc + (Number(d.subtotal || 0) - (Number(d.costo_unitario) || 0) * Number(d.cantidad || 0)),
-                      0
-                    )
+                    const ganancia =
+                      (v.detalle ?? []).reduce(
+                        (acc, d) =>
+                          acc + (Number(d.subtotal || 0) - (Number(d.costo_unitario) || 0) * Number(d.cantidad || 0)),
+                        0
+                      ) + manoObraVenta(v)
                     const fecha = new Date(v.created_at).toLocaleDateString('es-AR', {
                       day: '2-digit',
                       month: 'short'

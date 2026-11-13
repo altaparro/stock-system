@@ -538,26 +538,40 @@ function ContenidoVentas() {
 
         {ventaExitosa && (
           <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <span>
+            <div>
               {ventaExitosa.facturada && ventaExitosa.factura ? (
                 <>
-                  Venta <strong>#{ventaExitosa.venta_id}</strong> registrada y{' '}
-                  <strong>facturada</strong> por{' '}
-                  <strong>{fmtPrecio.format(ventaExitosa.factura.total || ventaExitosa.total)}</strong>.
-                  {' '}Factura C{' '}
-                  <strong className="font-mono">
-                    {fmtComprobante(ventaExitosa.factura.ptoVta, ventaExitosa.factura.cbteNro)}
-                  </strong>{' '}
-                  · CAE <strong className="font-mono">{ventaExitosa.factura.cae}</strong> · Vence{' '}
-                  {fmtCaeVto(ventaExitosa.factura.caeVencimiento)}.
+                  <span>
+                    Venta <strong>#{ventaExitosa.venta_id}</strong> registrada y{' '}
+                    <strong>facturada</strong> por{' '}
+                    <strong>{fmtPrecio.format(ventaExitosa.factura.total || ventaExitosa.total)}</strong>.
+                    {' '}Factura C{' '}
+                    <strong className="font-mono">
+                      {fmtComprobante(ventaExitosa.factura.ptoVta, ventaExitosa.factura.cbteNro)}
+                    </strong>{' '}
+                    · CAE <strong className="font-mono">{ventaExitosa.factura.cae}</strong> · Vence{' '}
+                    {fmtCaeVto(ventaExitosa.factura.caeVencimiento)}.
+                  </span>
+                  {ventaExitosa.factura.email && (
+                    <div className="mt-1 text-xs text-emerald-700/80">
+                      {ventaExitosa.factura.email.estado === 'enviado' &&
+                        `Mail enviado a ${ventaExitosa.factura.email.destino}.`}
+                      {ventaExitosa.factura.email.estado === 'sin_email' &&
+                        'No se envió el mail: el cliente no tiene email cargado.'}
+                      {ventaExitosa.factura.email.estado === 'no_configurado' &&
+                        'Mail no configurado en el servidor (SMTP).'}
+                      {ventaExitosa.factura.email.estado === 'error' &&
+                        'El mail no se pudo enviar (revisá la configuración SMTP).'}
+                    </div>
+                  )}
                 </>
               ) : (
-                <>
+                <span>
                   Venta <strong>#{ventaExitosa.venta_id}</strong> registrada por{' '}
                   <strong>{fmtPrecio.format(ventaExitosa.total)}</strong>. Stock actualizado.
-                </>
+                </span>
               )}
-            </span>
+            </div>
             <button
               type="button"
               onClick={() => setVentaExitosa(null)}
